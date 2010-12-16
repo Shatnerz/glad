@@ -87,7 +87,55 @@ class AbstractObject(object):
     self.requestedPos = self.getPosInTime(time)
     
     self.updatePos(time)
+    
+    #update the animation
+    self.anim.update(time)
 
+class Animation(object):
+  def __init__(self, frameList, timer, loop=False):
+    
+    self.timer = timer
+    self.loop = loop
+    self.timeLeft = timer
+    
+    self.frameList = frameList
+    self.currentFrameIndex = 0
+
+  def update(self, time):
+    
+    #if the timer is disabled, do nothing
+    if self.timeLeft is None:
+      return
+    
+    self.timeLeft -= time
+    
+    if self.timeLeft <= 0.0:
+      #reset the time left for the next animation
+      # if it is < 0, we shorten the timeLeft by that amount to keep
+      # the animation running smoothly
+      self.timeLeft = self.timer + self.timeLeft
+      
+      #increment the frame
+      self.currentFrameIndex += 1
+      
+      #if looping is true, set the frame to the first one
+      if self.currentFrameIndex == len (self.frameList):
+        
+        if self.loop:
+          self.currentFrameIndex = 0
+        else:
+          self.timeLeft = None #disable future updates
+  
+  def draw(self, screen, pos):
+    
+    screen.blit(self.frameList[self.currentFrameIndex],
+                pos)
+    
+    
+  
+class AnimationPlayer(object):
+  def __init__(self):
+    pass
  
 class PlayerController(object):
   """Manipulate an object via input events""" 
@@ -128,12 +176,27 @@ class TestWalker(AbstractObject):
     
     #speed is in pixels / second
     self.speed = 150.0
+    
+    #create three simple frame images for testing
+    f1 = pygame.Surface((32,32))
+    f2 = pygame.Surface((32,32))
+    f3 = pygame.Surface((32,32))
+    
+    f1.fill((128,128,0))
+    f2.fill((64,128,0))
+    f3.fill((128,64,0))
+    
+    self.anim = Animation([f1,f2,f3],.25,True)
         
   def draw(self, screen, offset):
     
     newRect = self.getRect()
     
-    pygame.draw.rect(screen, (128,128,0), newRect)    
+    #TODO: handle screen offset
+    
+    self.anim.draw(screen, newRect)
+    
+    #pygame.draw.rect(screen, (128,128,0), newRect)    
     
     
 class TestWorld(AbstractWorld):
