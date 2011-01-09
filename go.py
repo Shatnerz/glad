@@ -22,11 +22,12 @@ if __name__ == '__main__':
   
   #Setup the resource manager
   glad.resource = resourceManager.ResourceManager()
-    
+   
+  renderer = sdl.Renderer()
+  glad.renderer = renderer
+  
   #Load a test world
   world = glad.world = worldManager.TestWorld()
-  
-  renderer = sdl.Renderer()
   
   #Load default glad graphics
   resourceManager.registerGladResources()

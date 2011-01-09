@@ -213,7 +213,7 @@ class AbstractWorld(object):
       c.process()    
     
     #First move everything
-    for o in self.objectList:
+    for o in self.objectList:      
       o.update(time)
       
     #Resolve collisions
@@ -243,6 +243,13 @@ class AbstractObject(object):
     
     #TODO: make a moveable and immobile objects class
     self.speed = 0.0
+    
+  def getCenter(self):
+    
+    cx = self.pos[0] + self.size[0]/2.0
+    cy = self.pos[1] + self.size[1]/2.0
+    
+    return (cx,cy)
     
   def getPosInTime(self, time):
     
@@ -367,6 +374,8 @@ class Animation(object):
           self.timeLeft = None #disable future updates
   
   def draw(self, screen, pos):
+    
+    #draw offsets
     
     pyRect = pygame.Rect(pos.getPos(),pos.getSize())    
     
@@ -620,7 +629,10 @@ class TestWalker(AbstractObject):
     
     #TODO: handle screen offset
     
-    self.anim.draw(screen, newRect)
+    x = newRect.pos[0] - offset[0]
+    y = newRect.pos[1] - offset[1]
+    
+    self.anim.draw(screen, Rect(pos=(x,y),size=newRect.size))
     
     #pygame.draw.rect(screen, (128,128,0), newRect)    
     
@@ -644,13 +656,19 @@ class TestWorld(AbstractWorld):
     
     #add 2 more testwalkers for collision detection
     tw2 = TestWalker(pos=(200,100), size=(320,320))    
-    tw3 = TestWalker(pos=(200,200), size=(32,32))
+    #tw3 = TestWalker(pos=(200,200), size=(32,32))
     #self.objectList.extend([tw2,tw3])
     self.objectList.extend([tw2])
     
     #setup controls for this testwalker
     pc1 = PlayerController(tw)
     self.controllerList.append(pc1)
+    
+    #Set the first camera to follow the first testWalker
+    #Note: the render must be initialized before the world
+    cam1 = glad.renderer.cameraList[0]
+    print cam1
+    cam1.followObject(tw)
 
 
 def getOverlap((aMin,aMax),(bMin,bMax)):

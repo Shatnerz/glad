@@ -62,10 +62,38 @@ class Camera(object):
     self.windowRect = windowRect
     
     #For now, only show the top left of the world
-    self.worldRect = windowRect
+    self.worldRect = windowRect[:]
     
     #must use an SDL rect for the subsurface
     self.screen = pygame.Surface.subsurface(screen,windowRect)
+    
+    #Don't follow anything in the beginning
+    self.objectFollowed = None
+    
+  def update(self):
+    
+    if self.objectFollowed:
+      
+      rW = self.worldRect[2] - self.worldRect[0]
+      rH = self.worldRect[3] - self.worldRect[1] 
+      
+      #get center of object
+      ox,oy = self.objectFollowed.getCenter()
+      
+      ax = ox - rW/2.0
+      bx = ox + rW/2.0
+      
+      ay = oy - rH/2.0
+      by = oy + rH/2.0
+      
+      self.worldRect = (ax,ay,bx,by)
+      
+      #print ox,oy
+      #print self.worldRect
+    
+  
+  def followObject(self, obj):
+    self.objectFollowed = obj
     
 
 class InputInterface(object):
@@ -237,13 +265,16 @@ class Renderer(object):
     #Set camera to origin, size of rendering surface
     w,h = self.screen.get_size()
     c = Camera(windowRect = (0,0,w,h),
-               screen = self.screen)  
+               screen = self.screen)
     self.cameraList.append(c)
     
   def draw(self, world):
     """Draw each of the camera windows onto the rendering surface"""
     
     for cam in self.cameraList:     
+      
+      #update the cameras
+      cam.update()
       
       #first 2 coords are the pos
       offset = cam.worldRect[:2]
@@ -254,7 +285,7 @@ class Renderer(object):
     
       #draw the world, offset by the camera position      
       self.drawTiles(world.tileGrid, screen, offset)
-      
+
       #draw the objects in the world
       world.draw(screen, offset)        
   
@@ -273,8 +304,8 @@ class Renderer(object):
         #paint the resource onto the screen, offset by the
         # where the 'camera' is
         
-        left = Renderer.tileSize[0] * col + offset[0]
-        top = Renderer.tileSize[1] * row + offset[1]       
+        left = Renderer.tileSize[0] * col - offset[0]
+        top = Renderer.tileSize[1] * row - offset[1]       
         
         tile = glad.resource.get(tileName)    
         

@@ -3,5 +3,6 @@
 app = None
 config = None
 input = None
-world = None
+renderer = None
 resource = None
+world = None
