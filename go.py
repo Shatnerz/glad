@@ -41,18 +41,3 @@ if __name__ == '__main__':
     world.update(timeDelta)
     
     renderer.draw(world) 
-
-
-    
-
-
-#a = Rect((0,0),(10,10))
-#a.vel = (2.0,0.0)
-#
-#b = Rect((75,0), (10,10))
-#b.vel = (0.0,0.0)
-#
-#print a.getCollisionInfo(b)
-  
-  
-  
