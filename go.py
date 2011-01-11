@@ -13,7 +13,6 @@ if __name__ == '__main__':
   #Setup logging
   logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(funcName)s: %(message)s')
 
-
   #Setup our application
   
   glad.config = config.BasicConfig('config.cfg')
@@ -41,4 +40,4 @@ if __name__ == '__main__':
     
     world.update(timeDelta)
     
-    renderer.draw(world) 
+    renderer.draw(world)

@@ -4,6 +4,7 @@ import pygame
 
 import glad
 
+from util import Vector
 
 class App(object):
   """Basic application that handles OS events and provides a rendering
@@ -70,30 +71,60 @@ class Camera(object):
     #Don't follow anything in the beginning
     self.objectFollowed = None
     
+    self.worldBoundingRect = None
+    
+    
+    
   def update(self):
     
     if self.objectFollowed:
+      
+      assert self.worldBoundingRect is not None
       
       rW = self.worldRect[2] - self.worldRect[0]
       rH = self.worldRect[3] - self.worldRect[1] 
       
       #get center of object
-      ox,oy = self.objectFollowed.getCenter()
+      ox,oy = self.objectFollowed.getPos()
       
       ax = ox - rW/2.0
-      bx = ox + rW/2.0
+      #bx = ox + rW/2.0
       
       ay = oy - rH/2.0
-      by = oy + rH/2.0
+      #by = oy + rH/2.0
       
-      self.worldRect = (ax,ay,bx,by)
+      br = self.worldBoundingRect
       
-      #print ox,oy
-      #print self.worldRect
+      
+      #TODO: what to do if the camera can view the entire
+      # world at once
+      if ax < br[0] - 10: #Camera at left edge
+        ax = br[0] - 10
+      elif ax > br[2] - rW + 10: #Camera at right edge
+        ax = br[2] - rW + 10
+        
+      #print ax, br[2] - rW
+        
+      if ay < br[1] - 10: #camera at top edge
+        ay = br[1] - 10
+      elif ay > br[3] - rH + 10: #Camera at bottom edge
+        ay = br[3] - rH + 10
+      
+      self.worldRect = (ax,
+                        ay,
+                        ax+rW,
+                        ay+rH)
     
   
   def followObject(self, obj):
     self.objectFollowed = obj
+
+  def setWorldBoundingRect(self, r):
+    """In world coordinates, the bounding box for the world.
+    The camera won't center an object if he is near
+    the boundary, so that the player can see more"""
+    
+    self.worldBoundingRect = r    
     
 
 class InputInterface(object):
@@ -105,14 +136,13 @@ class InputInterface(object):
   def update(self, event):    
 
     if event.type == pygame.KEYDOWN:
-      self.keysPressed.add(chr(event.key))
+      self.keysPressed.add(event.key)
       
     elif event.type == pygame.KEYUP:
-      self.keysPressed.remove(chr(event.key))
+      self.keysPressed.remove(event.key)
       
   def isKeyPressed(self, key):
     return key in self.keysPressed
-
 
 class Renderer(object):
   """Handles drawing everything to the screen."""
@@ -277,7 +307,10 @@ class Renderer(object):
       cam.update()
       
       #first 2 coords are the pos
-      offset = cam.worldRect[:2]
+      offset = Vector(cam.worldRect[:2])
+      
+      offset *= -1      
+      
       screen = cam.screen      
       
       #make bg green for debugging purposes
@@ -304,8 +337,8 @@ class Renderer(object):
         #paint the resource onto the screen, offset by the
         # where the 'camera' is
         
-        left = Renderer.tileSize[0] * col - offset[0]
-        top = Renderer.tileSize[1] * row - offset[1]       
+        left = Renderer.tileSize[0] * col + offset[0]
+        top = Renderer.tileSize[1] * row + offset[1]       
         
         tile = glad.resource.get(tileName)    
         

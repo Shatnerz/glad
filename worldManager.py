@@ -1,8 +1,11 @@
-import math
-
 import pygame
 
 import glad
+
+#from multiMethod import multimethod
+
+from util import Vector,Rect,getCollisionInfo,getOverlap
+
 
 class AbstractWorld(object):
   
@@ -36,15 +39,18 @@ class AbstractWorld(object):
         objI = self.objectList[i]
         objJ = self.objectList[j]
         
-        r1 = objI.getRect()
-        r1vel = objI.getVelocity()
-        r2 = objJ.getRect()
-        r2vel = objJ.getVelocity()        
+        #Note, the shapes are at the origin, so we have to translate them
+        # to the objects current position
+        s1 = objI.shape.translate(objI.getPos())
+        s1vel = objI.vel
         
-        colInfo = Rect.getCollisionInfo(r1, r1vel, r2, r2vel)
-        
-        if colInfo is not None:
-          
+        s2 = objJ.shape.translate(objJ.getPos())
+        s2vel = objJ.vel
+
+        #TODO: this will always return none!!!
+        colInfo = getCollisionInfo(s1,s1vel,s2,s2vel)
+                
+        if colInfo is not None:          
           
           #only consider events <= time
           colTime, objIStops, objJStops = colInfo         
@@ -67,20 +73,33 @@ class AbstractWorld(object):
     
     boundDict = {}
     
-    for i in range(len(self.objectList)):
-
+    for i in range(len(self.objectList)):      
+      
       p1 = self.objectList[i].pos
       p2 = self.objectList[i].getPosInTime(time)
       
-      width,height = self.objectList[i].getRect().getSize()
+      shape = self.objectList[i].shape
       
-      lx = min(p1[0],p2[0])
-      rx = max(p1[0]+width, p2[0]+width)
+      #Get bounding boxes at the 2 positions
+      box1 = shape.getBoundingBox().translate(p1)
+      box2 = shape.getBoundingBox().translate(p2)
       
-      ty = min(p1[1],p2[1])
-      by = max(p1[1]+height, p2[1]+height)
+      #generate the union between them and store it
+      bbox = Rect.union(box1, box2)
       
-      boundDict[i] = Rect(pos=(lx,ty), size=(rx-lx, by-ty))
+      
+      
+#      width,height = self.objectList[i].getRect().getSize()
+#      
+#      lx = min(p1[0],p2[0])
+#      rx = max(p1[0]+width, p2[0]+width)
+#      
+#      ty = min(p1[1],p2[1])
+#      by = max(p1[1]+height, p2[1]+height)
+#      
+#      Rect(pos=(lx,ty), size=(rx-lx, by-ty))
+      
+      boundDict[i] = bbox
                 
     d = {}
     
@@ -108,8 +127,6 @@ class AbstractWorld(object):
             d[jObj] = set([iObj])
             
     return d
-        
-         
   
   @staticmethod
   def stopObjectEarly(obj, colTime, time, neighborDict, collisionList):
@@ -118,27 +135,26 @@ class AbstractWorld(object):
     
     #Set the new object position as the position right before the collision
     #set its movement to 0
-    obj.pos = newPos;  
+    obj.pos = newPos;
     obj.requestedPos = newPos;    
     obj.movedDir = (0,0)    
-    obj.moveSpeed = (0.0,0.0)
+    obj.vel = Vector(0.0,0.0)
     
     #remove all references to obj from collisionList
     
     collisionList = [x for x in collisionList if x[1] is not obj and x[3] is not obj]
     
     #Now, recalculate collision for all of its check if any of its neighbors
-    
-    
-    r1 = obj.getRect()
-    r1vel = obj.getVelocity()    
+        
+    s1 = obj.shape.translate(obj.getPos())
+    s1vel = obj.vel
     
     for n in neighborDict[obj]:
       
-        r2 = n.getRect()
-        r2vel = n.getVelocity()
+        s2 = n.shape.translate(n.getPos())
+        s2vel = n.vel
         
-        colInfo = Rect.getCollisionInfo(r1, r1vel, r2, r2vel)
+        colInfo = getCollisionInfo(s1, s1vel, s2, s2vel)
         
         if colInfo is not None:
           
@@ -208,138 +224,151 @@ class AbstractWorld(object):
     
       
   def update(self, time):
-
-    for c in self.controllerList:
-      c.process()    
     
-    #First move everything
+    #Process controllers, either player or AI
+    for c in self.controllerList:
+      c.process()
+    
+    #First move everything into their 'requested' positions
     for o in self.objectList:      
-      o.update(time)
+      o.updateRequestedPos(time)
       
-    #Resolve collisions
+    #Resolve collisions between requested positions
     self.greedyCollisionDetection(time)
     
     #Finalize positions
     for o in self.objectList:
-      o.updatePos(time)  
+      o.updatePos(time)
+      
+    #update animations, weapons, other stuff
+    for o in self.objectList:
+      o.update(time)
 
 
 class AbstractObject(object):
+  """All game world objects are ultimately derived from this class.
+  Contains a variety of useful functions used for movement and 
+  collision detection"""
   
-  def __init__(self, pos=None, size=None):
-    self.pos = pos
-    self.size = size
+  def __init__(self, pos, shape, moveSpeed = 0.0, moveDir=None):
     
-    #ghost - walls, 
+    #Objects position (the center)
+    self.pos = Vector(pos)
     
-    #fly through walls
-    #fly over water
-    #fly through people    
+    #The objects shape, used for collision detection 
+    self.shape = shape
     
-    self.movedDir = (0,0)    
-    self.moveSpeed = (0.0,0.0)
+    self.moveSpeed = moveSpeed
+    if not moveDir:
+      self.moveDir = Vector(0,0)
+    else:
+      self.moveDir = Vector(moveDir)
+      
+    #Velocity is the normalized direction scaled by the speed
+    #TODO: calculate on update?
+    if not self.moveDir.isNullVector():
+      self.moveDir.normalize()
     
+    self.vel = self.moveDir * self.moveSpeed
+      
+    #Keep track of where the objects wants to go next
     self.requestedPos = pos
     
-    #TODO: make a moveable and immobile objects class
-    self.speed = 0.0
+    #Set up the animation object
+    #TODO: this is temporary for testing
+    self.animation = TestAnimation(shape.getSize())
     
-  def getCenter(self):
+  def draw(self, screen, offset):
     
-    cx = self.pos[0] + self.size[0]/2.0
-    cy = self.pos[1] + self.size[1]/2.0
+    #draw the animation, centered at the objects position
+    # and offset according to the location of the camera    
+    self.animation.draw(screen, self.getPos()+offset)
+  
     
-    return (cx,cy)
+  def setPos(self, pos):    
+    self.pos = Vector(pos)
+      
+  def getPos(self):
+    return self.pos
     
   def getPosInTime(self, time):
+    """Calculate the objects position in 'time' as a function
+    of its current position and velocity."""
     
-    vx,vy = self.moveSpeed
+    return self.pos + self.vel*time
     
-    return (self.pos[0] + vx*time, self.pos[1] + vy*time)   
-           
-#    x, y = self.movedDir    
-#    speed = self.speed
+    
 #    
-#    if (x,y) != (0,0):
-#      norm = math.sqrt(x*x + y*y)
-#      
-#      #keep track of vx/vy so we don't have to keep recalculating
-#      vx = float(speed*x/norm)
-#      vy = float(speed*y/norm)
-#      
-#      self.moveSpeed = (vx,vy)
-#      
-#      return (self.pos[0] + vx*time, self.pos[1] + vy*time)
-#    else:
-#      return self.pos
-    
-  def getRect(self):
-    #return (self.pos[0],self.pos[1],
-    #        self.size[0],self.size[1])
-    
-    return Rect(self.pos, self.size)
+#  def getRect(self):
+#    #return (self.pos[0],self.pos[1],
+#    #        self.size[0],self.size[1])
+#    
+#    return Rect(self.pos, self.size)
     
   def getRequestedPos(self):
     return self.requestedPos
   
-  def getVelocity(self):
-    return self.moveSpeed
+#  def getVelocity(self):
+#    return self.moveSpeed
   
-  def isCollision(self, o,requested=False):
-    #request=True means we check requested positions
-    """Check if this object's rect overlaps the other's rect"""
-    
-    if requested:
-      ax1,ay1 = self.requestedPos
-    else:
-      ax1,ay1 = self.pos
-    ax2,ay2 = ax1+self.size[0],ay1+self.size[1]
-    
-    if requested:
-      bx1,by1 = o.requestedPos
-    else:
-      bx1,by1 = o.pos
-    bx2,by2 = bx1+o.size[0],by1+o.size[1]
-    
-    if ax1 < bx2 and ax2 > bx1 and ay1 < by2 and ay2 > by1:
-      return True
-    else:
-      return False
+#  def isCollision(self, o,requested=False):
+#    #request=True means we check requested positions
+#    """Check if this object's rect overlaps the other's rect"""
+#    
+#    if requested:
+#      ax1,ay1 = self.requestedPos
+#    else:
+#      ax1,ay1 = self.pos
+#    ax2,ay2 = ax1+self.size[0],ay1+self.size[1]
+#    
+#    if requested:
+#      bx1,by1 = o.requestedPos
+#    else:
+#      bx1,by1 = o.pos
+#    bx2,by2 = bx1+o.size[0],by1+o.size[1]
+#    
+#    if ax1 < bx2 and ax2 > bx1 and ay1 < by2 and ay2 > by1:
+#      return True
+#    else:
+#      return False
     
   def requestMove(self, direction):
-    """Indicate whe preferred direction this object wants to go"""
+    """Indicate whe preferred direction this object wants to go"""  
     
-    assert direction is not None    
-    self.movedDir = direction
+    assert direction is not None
+
+    #update the direction
+    self.moveDir = Vector(direction)
     
-    x,y = self.movedDir
-    if (x,y) != (0,0):
-      speed = self.speed
-      norm = math.sqrt(x*x + y*y)
+    #update the objects velocity
+    #TODO: what if the move direction is 0 vector?    
+    if not self.moveDir.isNullVector():
+      self.moveDir.normalize()
       
-      #keep track of vx/vy so we don't have to keep recalculating
-      vx = float(speed*x/norm)
-      vy = float(speed*y/norm)
-    
-      self.moveSpeed = (vx,vy)
-    else:
-      self.moveSpeed = (0.0,0.0)
+    self.vel = self.moveDir*self.moveSpeed
         
   def updatePos(self, time):
+    """Set the objects position equal to its requested position. Usually
+    done after collision resolution"""
     self.pos = self.requestedPos
     
-  def update(self, time):
-    
+  def updateRequestedPos(self, time):
+    """Update the objects requested position, done before
+    collision resolution"""    
     self.requestedPos = self.getPosInTime(time)
     
-    #self.updatePos(time)
-    
+  def update(self, time):
     #TODO: animaitons should be updated after collision detection
     #update the animation
-    self.anim.update(time)
+    
+    if self.animation:
+      self.animation.update(time)
 
 class Animation(object):
-  def __init__(self, frameList, timer, loop=False):
+  def __init__(self, size, frameList, timer, loop=False):
+    
+    #Note: assumes all frames are the same size!
+    self.frameSize = Vector(size) 
     
     self.timer = timer
     self.loop = loop
@@ -375,30 +404,50 @@ class Animation(object):
   
   def draw(self, screen, pos):
     
-    #draw offsets
+    #pos was the 'center' of the object, now we translate it
+    # to the upper left corner for pygame
+    x = pos[0] - self.frameSize[0]/2.0
+    y = pos[1] - self.frameSize[1]/2.0
     
-    pyRect = pygame.Rect(pos.getPos(),pos.getSize())    
+    #Note: pos should be upperleft coordinate of rect   
+    pyRect = pygame.Rect((x,y), self.frameSize)    
     
     screen.blit(self.frameList[self.currentFrameIndex],
                 pyRect)
     
-    
+class TestAnimation(Animation):
   
-class AnimationPlayer(object):
-  def __init__(self):
-    pass
+  def __init__(self, size, time=1.0, colorList=None):
+    
+    frameList = []
+    
+    if colorList is None:
+      colorList = [(0,0,64),(0,0,128),(0,0,192)]
+            
+    for c in colorList:
+      f = pygame.Surface(size)
+      f.fill(c)
+      frameList.append(f)      
+    
+    Animation.__init__(self,size,frameList,time,True)
+    
+    
+ 
  
 class PlayerController(object):
   """Manipulate an object via input events""" 
   
   def __init__(self, target):
     
-    self.moveUp = 'w'
-    self.moveDown = 's'
-    self.moveLeft = 'a'
-    self.moveRight = 'd'
+        
+    self.moveUp = pygame.K_w
+    self.moveDown = pygame.K_s
+    self.moveLeft = pygame.K_a
+    self.moveRight = pygame.K_d
     
     self.target = target
+    
+    self.attack = pygame.K_SPACE
       
   def process(self):
     
@@ -418,223 +467,151 @@ class PlayerController(object):
          
     self.target.requestMove(direction)
     
+    #attack
+    if glad.input.isKeyPressed(self.attack):
+      self.target.attack()
+    
 
-
-
-class Rect(object):
-  """Basic rectangle class. Contains overlap checking"""
-  
-  def __init__(self, pos, size):
-    self.pos = pos
-    self.size = size
-    
-  def __repr__(self):
-    return 'Rect: %s %s' % (self.pos, self.size)
-    
-  def getCenter(self):
-    
-    return (self.pos[0] + self.size[0]/2.0, 
-            self.pos[1] + self.size[1]/2.0)
-    
-  @staticmethod
-  def touches(a,b):
-    """Checks if 2 rectangles intersect each other"""
-    
-    ax1 = a.pos[0]
-    ax2 = a.pos[0] + a.size[0]
-    ay1 = a.pos[1]
-    ay2 = a.pos[1] + a.size[1]
-    
-    bx1 = b.pos[0]
-    bx2 = b.pos[0] + b.size[0]
-    by1 = b.pos[1]
-    by2 = b.pos[1] + b.size[1]
-    
-    #uses <= vs < because when rectangles are touching, they don't intersect
-    
-    if ax1 <= bx2 and ax2 >= bx1 and \
-      ay1 <= by2 and ay2 >= by1:
-      return True
-    else:
-      return False
-    
-  def getPos(self):
-    return self.pos
-  
-  def getSize(self):
-    return self.size
-    
-  @staticmethod
-  def getAxisProjCollisionRange((a1,a2),av,(b1,b2),bv):
-    """TODO: document this"""
-    
-    if (bv-av) == 0.0:
-      #no relative movement on this axis, 2 scenarios
-      
-      #TODO:, decide about >= vs >
-      
-      #1 already overlapping
-      if a2 > b1 and a1 < b2:
-        return 'OVERLAPS' #always overlapping
-      else:
-        return 'NEVER_OVERLAPS' #never overlap
-      # not overlapping, return None
-    else:      
-      t1 = (a2-b1)/(bv-av)    # a2+avt >= b1+bvt
-      t2 = (a1-b2)/(bv-av)    # a1+avt <= b2+bvt
-      
-    return (min(t1,t2), max(t1,t2))
-  
-  def getXProjAtTime(self, time, vel):    
-    x1 = self.pos[0] + vel[0]*time    
-    return (x1, x1+self.size[0])
-  
-  def getYProjAtTime(self, time, vel):       
-    y1 = self.pos[1] + vel[1]*time    
-    return (y1, y1+self.size[1])   
-    
-  
-  @staticmethod
-  def collisionStopsMovement(ax,ay,r1vel,bx,by):
-    #check if the collision will stop forward movement at this time
-    if r1vel[0] > 0.0:      
-      if ax[1] >= bx[0]:
-        return True    
-    elif r1vel[0] < 0.0:
-      if ax[0] <= bx[1]:
-        return True
-    
-    if r1vel[1] > 0.0:
-      if ay[1] >= by[0]:
-        return True
-    elif r1vel[1] < 0.0:
-      if ay[0] <= by[1]:
-        return True   
-      
-    return False
-      
-  
-  @staticmethod
-  def getCollisionInfo(r1, r1vel, r2, r2vel):    
-    """Returns a tuple with the collision time between r1 and r2,
-    and whether this collision could potentially stop r1's movement"""
-    
-    time = None
-    isStopping = None
-    
-    xRange = Rect.getAxisProjCollisionRange(r1.getXProj(),
-                                            r1vel[0],
-                                            r2.getXProj(),
-                                            r2vel[0])
-    
-    yRange = Rect.getAxisProjCollisionRange(r1.getYProj(),
-                                            r1vel[1],
-                                            r2.getYProj(),
-                                            r2vel[1])
-    
-    #print 'xrange: ', xRange
-    #print 'yrange: ', yRange
-    
-        
-    if xRange == 'OVERLAPS' and yRange == 'OVERLAPS':
-      #print 'overlaps!!!!!'
-      time = 0.0 #objects already overlap      
-    elif xRange == 'NEVER_OVERLAPS' or yRange == 'NEVER_OVERLAPS':
-      time = 'NEVER_OVERLAPS'
-    elif xRange == 'OVERLAPS':
-      #if times have different signs, we are inside
-      if yRange[0]*yRange[1] < 0:
-        time = 0.0
-      else:
-        time = min(yRange)
-    elif yRange == 'OVERLAPS':
-      #if times have different signs, we are inside
-      if xRange[0]*xRange[1] < 0:
-        time = 0.0
-      else:
-        time = min(xRange)
-    else: #xRange and yRange both have valid intervals
-      #TODO: FINISH THIS      
-      overlap = getOverlap(xRange,yRange)
-      
-#      print 'DEBUG!'
-#      print 'overlap', overlap
-      
-      if overlap is None:
-        return None
-      else:
-        #TODO: WRONG!!!
-        #time = overlap
-        time = overlap[0]        
-        
-      if xRange[0]*xRange[1] < 0 and yRange[0]*yRange[1] < 0:
-        #we are inside
-        time = 0.0
-      
-    if time == 'NEVER_OVERLAPS':
-      return None
-    
-    #TODO: should we allow negatives times and deal with later
-    if time < 0:      
-      return None
-    
-    
-    #TODO: calc if each object will hae it's movement stopped
-    
-    #get positions at time
-    ax = r1.getXProjAtTime(time,r1vel)
-    bx = r2.getXProjAtTime(time,r2vel)
-    
-    ay = r1.getYProjAtTime(time,r1vel)
-    by = r2.getYProjAtTime(time,r2vel)
-    
-    
-    r1Stops = Rect.collisionStopsMovement(ax,ay,r1vel,bx,by) 
-    r2Stops = Rect.collisionStopsMovement(bx,by,r2vel,ax,ay)
-    
-     
-    
-    return (time,r1Stops,r2Stops)              
-  
-  def getXProj(self):
-    return (self.pos[0],self.pos[0]+self.size[0])
-  
-  def getYProj(self):
-    return (self.pos[1],self.pos[1]+self.size[1])
 
 
   
 class TestWalker(AbstractObject):
   
+  def __init__(self, pos, **kwargs):    
+    
+    shape = Rect.createAtOrigin(320, 320)    
+    AbstractObject.__init__(self, pos, shape, **kwargs)
+    
+    
+class BasicUnit(AbstractObject):
+  
+  def __init__(self, pos, shape, **kwargs):
+    AbstractObject.__init__(self, pos, shape, **kwargs)    
+  
+    #Default statistics  
+    self.strength = 10
+    self.dexterity = 10
+    self.constitution = 10
+    self.intelligence = 10
+    self.armor = 10    
+    self.level = 1
+    
+    self.rangedWeapon = None
+    self.meleeWeapon = None    
+    
+  def attack(self):
+    self.rangedAttack()
+    pass
+    
+  def meleeAttack(self, target):
+    pass
+  
+  def rangedAttack(self):
+    
+    #spawn the ranged attack just outside of the rect
+    
+    self.rangedWeapon.attack(self.getCenterPos(), self.size, self.faceDir)
+    pass
+  
+  def update(self, time):
+    AbstractObject.update(self, time)
+    
+    self.rangedWeapon.update(time)
+  
+  
+
+class BasicProjectile(AbstractObject):
   def __init__(self, **kwargs):
-    AbstractObject.__init__(self,**kwargs)
     
-    #speed is in pixels / second
-    self.speed = 150.0
+    AbstractObject.__init__(self, **kwargs)
     
-    #create three simple frame images for testing
-    f1 = pygame.Surface(self.size)
-    f2 = pygame.Surface(self.size)
-    f3 = pygame.Surface(self.size)
+    self.speed = 450.0
     
-    f1.fill((128,128,0))
-    f2.fill((64,128,0))
-    f3.fill((128,64,0))
+    #
+    x,y = self.faceDir
     
-    self.anim = Animation([f1,f2,f3],.25,True)
-        
-  def draw(self, screen, offset):
     
-    newRect = self.getRect()
+    speed = self.speed
+    norm = math.sqrt(x*x + y*y)
+      
+    #keep track of vx/vy so we don't have to keep recalculating
+    vx = float(speed*x/norm)
+    vy = float(speed*y/norm)
     
-    #TODO: handle screen offset
+    self.moveSpeed = (vx,vy)
+  
+  
+  
+class KnifeThrower(object):
+  """Spawns knives"""
+  
+  def __init__(self):
     
-    x = newRect.pos[0] - offset[0]
-    y = newRect.pos[1] - offset[1]
+    #temporary defaults for now    
+    self.maxKnives = 99
+    self.knivesAvailable = 99
     
-    self.anim.draw(screen, Rect(pos=(x,y),size=newRect.size))
+    self.nextAttackTimer = 0.0
+    self.attackCooldown = 1.0
     
-    #pygame.draw.rect(screen, (128,128,0), newRect)    
+  def update(self, time):
+    
+    self.nextAttackTimer -= time
+    
+    if self.nextAttackTimer < 0.0:
+      self.nextAttackTimer = 0.0   
+  
+  def attack(self, centerPos, size, faceDir):
+    
+    if self.nextAttackTimer != 0.0 or self.knivesAvailable == 0:
+      print 'cooldown: ', self.nextAttackTimer, self.knivesAvailable
+      return #do nothing
+    
+    self.knivesAvailable -= 1
+    self.nextAttackTimer += self.attackCooldown
+    
+    #create a knife just outside the spawn location
+    
+    knifeSize = (10,10)
+    
+    #TODO: how to handle diagonal movement and firing?
+    # spawn outside rect, or inside?
+    
+    print faceDir
+    
+    kcx = centerPos[0] + (knifeSize[0]/2.0 + size[0]/2.0) * faceDir[0]
+    kcy = centerPos[1] + (knifeSize[1]/2.0 + size[1]/2.0) * faceDir[1]
+    
+    
+    proj = BasicProjectile(size = knifeSize)    
+    
+    proj.setCenterPos((kcx,kcy))
+    
+    proj.movedDir = faceDir    
+    
+  
+    
+    
+    glad.world.objectList.append(proj)
+    #TODO: spawn knife here
+    
+      
+
+class Soldier(BasicUnit):
+  
+  def __init__(self, pos, **kwargs):
+    #For now, just use BasicUnit Defaults
+    
+    #default soldier size    
+    shape = Rect.createAtOrigin(32, 32)
+      
+    BasicUnit.__init__(self, pos, shape, **kwargs)
+    
+  
+    self.moveSpeed = 300.0
+    self.rangedWeapon = KnifeThrower()
+    
+
     
     
 class TestWorld(AbstractWorld):
@@ -651,34 +628,33 @@ class TestWorld(AbstractWorld):
     self.tileGrid = [[1 for x in range(gridWidth)] for y in range(gridHeight)]
     
     #add 1 testwalker
-    tw = TestWalker(pos=(100,100), size=(32,32))   
-    self.objectList.append(tw) 
+    #tw = TestWalker(pos=(100,100), size=(32,32))
+    #self.objectList.append(tw)
     
-    #add 2 more testwalkers for collision detection
-    tw2 = TestWalker(pos=(200,100), size=(320,320))    
-    #tw3 = TestWalker(pos=(200,200), size=(32,32))
-    #self.objectList.extend([tw2,tw3])
+    #add 1 soldier for testing
+    sold1 = Soldier(pos=(100,100))    
+    self.objectList.append(sold1)
+    
+            
+    tw2 = TestWalker(pos=(300,300))
     self.objectList.extend([tw2])
     
     #setup controls for this testwalker
-    pc1 = PlayerController(tw)
+    pc1 = PlayerController(sold1)
     self.controllerList.append(pc1)
     
     #Set the first camera to follow the first testWalker
     #Note: the render must be initialized before the world
     cam1 = glad.renderer.cameraList[0]
-    print cam1
-    cam1.followObject(tw)
+    #print cam1
+    cam1.followObject(sold1)
+    
+    
+    cam1.setWorldBoundingRect((0,
+                               0,
+                               gridWidth*32, #TODO: don't hardcode tile sizes
+                               gridHeight*32)) #TODO: don't hardcode tile sizes
 
 
-def getOverlap((aMin,aMax),(bMin,bMax)):
-  
-  #TODO: note, using >= / <= for first 2 if's eliminates touching
-  # as an intersection
-  
-  if aMax < bMin or aMin > bMax:
-    return None
-  else:  
-    #return min(aMax, bMax) - max(aMin, bMin)
-    #return a tuple
-    return (max(aMin,bMin),min(aMax,bMax))
+
+
