@@ -139,7 +139,8 @@ class InputInterface(object):
       self.keysPressed.add(event.key)
       
     elif event.type == pygame.KEYUP:
-      self.keysPressed.remove(event.key)
+      #BUGFIX: use discard, because keys may be pressed at program start
+      self.keysPressed.discard(event.key)
       
   def isKeyPressed(self, key):
     return key in self.keysPressed
