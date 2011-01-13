@@ -7,6 +7,8 @@ import glad
 from util import Vector,Rect,getCollisionInfo,getOverlap
 
 
+
+
 class AbstractWorld(object):
   
   def __init__(self):
@@ -24,6 +26,7 @@ class AbstractWorld(object):
       
   def generateCollisionList(self, time):
     """Generate a dictionary of collisions between object
+    that are allowed to generate collision events
     TODO: FINISH DOC HERE
     
     only considers collisions that happen <= time"""
@@ -38,6 +41,12 @@ class AbstractWorld(object):
         
         objI = self.objectList[i]
         objJ = self.objectList[j]
+        
+        
+        #If the objecs can't collide, don't even bother 
+        # comparing them
+        if not CollisionFilter.canCollide(objI, objJ):
+          continue
         
         #Note, the shapes are at the origin, so we have to translate them
         # to the objects current position
@@ -67,7 +76,8 @@ class AbstractWorld(object):
   
   def generateNeighborDict(self, time):
     """Generate dict of neighbors. A neighbor is any object
-    within the bounding box of an objects trajectory during time"""
+    within the bounding box of an objects trajectory during time.
+    Objects must be able to collide to be considered neighbors"""
     
     #first, calculate bounding box for each object
     
@@ -87,29 +97,23 @@ class AbstractWorld(object):
       #generate the union between them and store it
       bbox = Rect.union(box1, box2)
       
-      
-      
-#      width,height = self.objectList[i].getRect().getSize()
-#      
-#      lx = min(p1[0],p2[0])
-#      rx = max(p1[0]+width, p2[0]+width)
-#      
-#      ty = min(p1[1],p2[1])
-#      by = max(p1[1]+height, p2[1]+height)
-#      
-#      Rect(pos=(lx,ty), size=(rx-lx, by-ty))
-      
       boundDict[i] = bbox
                 
     d = {}
     
     #TODO: improve, this is O(n^2) for testing
+    #TODO: is this only necessary for objects that can stop each other?
     
     for i in range(len(self.objectList)):      
       for j in range(i+1, len(self.objectList)):
         
         iObj = self.objectList[i]
         jObj = self.objectList[j]
+        
+        #this is only applicable for objects which can create
+        # collision events
+        if not CollisionFilter.canCollide(iObj,jObj):
+          continue
         
         iRect = boundDict[i]
         jRect = boundDict[j]
@@ -206,6 +210,10 @@ class AbstractWorld(object):
       print 'Collision: %s' % str(collisionInfo)
 #      print objI.getRect()
 #      print objJ.getRect()
+
+      #We don't 'stop' objects in motion unless necessary
+      if not CollisionFilter.canStop(objI,objJ):
+        continue
       
       if objIStops:
         #remove all future collisions with objI in them
@@ -250,7 +258,9 @@ class AbstractObject(object):
   Contains a variety of useful functions used for movement and 
   collision detection"""
   
-  def __init__(self, pos, shape, moveSpeed = 0.0, moveDir=None):
+  def __init__(self, pos, shape, team, moveSpeed = 50.0, moveDir=None):
+    
+    #General
     
     #Objects position (the center)
     self.pos = Vector(pos)
@@ -267,16 +277,23 @@ class AbstractObject(object):
     #Velocity is the normalized direction scaled by the speed
     #TODO: calculate on update?
     if not self.moveDir.isNullVector():
-      self.moveDir.normalize()
-    
-    self.vel = self.moveDir * self.moveSpeed
+      #self.moveDir.normalize()    
+      self.vel = self.moveDir.getNormalized() * self.moveSpeed
+    else:
+      self.vel = Vector(0,0)
       
     #Keep track of where the objects wants to go next
     self.requestedPos = pos
     
+    #Keep track of which direction the object is 'facing'
+    self.orientation = None
+    
     #Set up the animation object
     #TODO: this is temporary for testing
     self.animation = TestAnimation(shape.getSize())
+    
+    #set the team property
+    self.team = team
     
   def draw(self, screen, offset):
     
@@ -343,9 +360,10 @@ class AbstractObject(object):
     #update the objects velocity
     #TODO: what if the move direction is 0 vector?    
     if not self.moveDir.isNullVector():
-      self.moveDir.normalize()
-      
-    self.vel = self.moveDir*self.moveSpeed
+      #self.moveDir.normalize()
+      self.vel = self.moveDir.getNormalized()*self.moveSpeed
+    else:
+      self.vel = Vector(0,0)
         
   def updatePos(self, time):
     """Set the objects position equal to its requested position. Usually
@@ -414,7 +432,49 @@ class Animation(object):
     
     screen.blit(self.frameList[self.currentFrameIndex],
                 pyRect)
+      
+      
+class CollisionFilter:
+  
+  alwaysCollides = {'UNIT': ['UNIT']}
+  
+  #Collision occur only if objects belong to opposing teams
+  enemyCollides = {'PROJECTILE': ['UNIT']}
+  
+  
+  #keep track of objects that stop each other
+  alwaysStop = {'UNIT' : ['UNIT']}
+  
+  @staticmethod
+  def canCollide(a, b):   
     
+    ac = CollisionFilter.alwaysCollides
+    ec = CollisionFilter.enemyCollides
+    
+    if a.collisionType in ac.get(b.collisionType,[]) or \
+      b.collisionType in ac.get(a.collisionType,[]):
+      return True    
+    elif a.team != b.team and (a.collisionType in ec.get(b.collisionType,[]) or \
+      b.collisionType in ec.get(a.collisionType,[])):
+      return True
+    
+    return False
+  
+  @staticmethod
+  def canStop(a,b):
+    """Used to determine if a unit stops another after a collision"""
+    
+    sd = CollisionFilter.alwaysStop
+    
+    if a.collisionType in sd.get(b.collisionType,[]) or \
+      b.collisionType in sd.get(a.collisionType,[]):
+      return True
+    
+    return False
+  
+     
+      
+      
 class TestAnimation(Animation):
   
   def __init__(self, size, time=1.0, colorList=None):
@@ -482,11 +542,15 @@ class TestWalker(AbstractObject):
     shape = Rect.createAtOrigin(320, 320)    
     AbstractObject.__init__(self, pos, shape, **kwargs)
     
+    self.collisionType = 'UNIT'
+    
     
 class BasicUnit(AbstractObject):
   
   def __init__(self, pos, shape, **kwargs):
-    AbstractObject.__init__(self, pos, shape, **kwargs)    
+    AbstractObject.__init__(self, pos, shape, **kwargs)
+    
+    self.collisionType = 'UNIT'
   
     #Default statistics  
     self.strength = 10
@@ -497,7 +561,10 @@ class BasicUnit(AbstractObject):
     self.level = 1
     
     self.rangedWeapon = None
-    self.meleeWeapon = None    
+    self.meleeWeapon = None
+    
+    #By default, have units face 'right'
+    self.orientation = Vector(1,0)
     
   def attack(self):
     self.rangedAttack()
@@ -510,35 +577,45 @@ class BasicUnit(AbstractObject):
     
     #spawn the ranged attack just outside of the rect
     
-    self.rangedWeapon.attack(self.getCenterPos(), self.size, self.faceDir)
+    #gap = space between center of player and center of projectile
+    #TODO: abstract/put in the correct place
+    gap = 16
+    
+    self.rangedWeapon.attack(self.getPos(), 
+                             gap, 
+                             self.orientation,
+                             self.team)
     pass
   
   def update(self, time):
-    AbstractObject.update(self, time)
     
-    self.rangedWeapon.update(time)
-  
-  
+    if self.rangedWeapon:
+      self.rangedWeapon.update(time)
+    
+    #update the orientation / which way the unit is facing
+    if not self.moveDir.isNullVector():
+      self.orientation = self.moveDir.copy()   
+    
+    #Update the abstract object/draw the scene
+    AbstractObject.update(self, time)     
 
 class BasicProjectile(AbstractObject):
-  def __init__(self, **kwargs):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    AbstractObject.__init__(self, **kwargs)
+    AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    print 'TEAM: ',team
+    
+    self.collisionType = 'PROJECTILE'
+    
+    
     
     self.speed = 450.0
     
-    #
-    x,y = self.faceDir
+    self.vel = moveDir*self.speed 
     
     
-    speed = self.speed
-    norm = math.sqrt(x*x + y*y)
-      
-    #keep track of vx/vy so we don't have to keep recalculating
-    vx = float(speed*x/norm)
-    vy = float(speed*y/norm)
     
-    self.moveSpeed = (vx,vy)
   
   
   
@@ -552,7 +629,7 @@ class KnifeThrower(object):
     self.knivesAvailable = 99
     
     self.nextAttackTimer = 0.0
-    self.attackCooldown = 1.0
+    self.attackCooldown = 0.1
     
   def update(self, time):
     
@@ -561,7 +638,7 @@ class KnifeThrower(object):
     if self.nextAttackTimer < 0.0:
       self.nextAttackTimer = 0.0   
   
-  def attack(self, centerPos, size, faceDir):
+  def attack(self, pos, gap, orientation,team):
     
     if self.nextAttackTimer != 0.0 or self.knivesAvailable == 0:
       print 'cooldown: ', self.nextAttackTimer, self.knivesAvailable
@@ -572,28 +649,20 @@ class KnifeThrower(object):
     
     #create a knife just outside the spawn location
     
-    knifeSize = (10,10)
-    
+    knifeShape = Rect.createAtOrigin(10,10)
+        
     #TODO: how to handle diagonal movement and firing?
     # spawn outside rect, or inside?
     
-    print faceDir
-    
-    kcx = centerPos[0] + (knifeSize[0]/2.0 + size[0]/2.0) * faceDir[0]
-    kcy = centerPos[1] + (knifeSize[1]/2.0 + size[1]/2.0) * faceDir[1]
+    knifePos = pos + orientation.getNormalized()*gap
     
     
-    proj = BasicProjectile(size = knifeSize)    
     
-    proj.setCenterPos((kcx,kcy))
-    
-    proj.movedDir = faceDir    
-    
-  
+    proj = BasicProjectile(knifePos,knifeShape,team,orientation)
     
     
     glad.world.objectList.append(proj)
-    #TODO: spawn knife here
+#    TODO: spawn knife here
     
       
 
@@ -632,12 +701,18 @@ class TestWorld(AbstractWorld):
     #self.objectList.append(tw)
     
     #add 1 soldier for testing
-    sold1 = Soldier(pos=(100,100))    
+    sold1 = Soldier(pos=(100,100),team=1)    
     self.objectList.append(sold1)
     
+    #TODO: put this someplace reasonable
+    sold1.team = 1
+    
             
-    tw2 = TestWalker(pos=(300,300))
+    tw2 = TestWalker(pos=(300,300),team=2)
     self.objectList.extend([tw2])
+    
+    #TODO: put this someplace reasonable
+    tw2.team = 2
     
     #setup controls for this testwalker
     pc1 = PlayerController(sold1)
@@ -658,3 +733,37 @@ class TestWorld(AbstractWorld):
 
 
 
+
+
+
+
+"""
+PASS THOGUH
+ghost:
+water
+walls 
+team projectiles
+
+fairie:
+water
+team projectiles
+
+walker:
+team projectiles
+
+
+2 questions: collision, stoppable
+
+
+Projectiles:
+collide with: walkers,flyers,ghosts, walls
+
+walkers
+
+
+
+
+
+
+
+"""

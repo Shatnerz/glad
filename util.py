@@ -12,9 +12,12 @@ class Vector(object):
       Vector([1,2,3])
       Vector((1,2,3))"""        
     
-    #If a vector is passed as an argument, return a copy instead
+    #TODO: consolidate these if statements
+    
+    #If a vector is passed as an argument, make a copy
     if len(args) == 1 and isinstance(args[0],Vector):
-      return args[0].copy()
+      args = args[0]    
+    
     elif isinstance(args[0],(list,tuple)):
       args = args[0]    
     
@@ -48,8 +51,7 @@ class Vector(object):
     return Vector(data)  
     
   def copy(self):
-    v = Vector()
-    v.data = self.data[:]    
+    v = Vector(self.data[:])    
     return v
     
   def getNorm(self):
@@ -69,12 +71,14 @@ class Vector(object):
       
     return True
   
-  def normalize(self):
-    """In place normalization"""
+  def getNormalized(self):
+    """Returns a new normalized version of self"""
     
     norm = self.getNorm()
     
-    self.data = [x/norm for x in self.data]
+    data = [x/norm for x in self.data]
+    
+    return Vector(data)
     
 
 class Rect(object):
@@ -292,11 +296,8 @@ def getCollisionInfo(r1,r1vel,r2,r2vel):
   
   ay = r1.getYProjAtTime(time,r1vel)
   by = r2.getYProjAtTime(time,r2vel)
-  
-  
-  r1Stops = Rect.collisionStopsMovement(ax,ay,r1vel,bx,by) 
+    
+  r1Stops = Rect.collisionStopsMovement(ax,ay,r1vel,bx,by)
   r2Stops = Rect.collisionStopsMovement(bx,by,r2vel,ax,ay)
-  
-   
   
   return (time,r1Stops,r2Stops)     
