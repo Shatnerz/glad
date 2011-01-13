@@ -83,7 +83,7 @@ def registerGladTiles():
   #TODO: in future, register automatically, not manually
   
   
-  tileFolder = '/home/chris/glad/resources/images/' 
+  tileFolder = 'resources/images/' 
   
   tileSize = (32,32)
   
