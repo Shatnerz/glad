@@ -611,7 +611,14 @@ class Soldier(BasicUnit):
     self.moveSpeed = 300.0
     self.rangedWeapon = KnifeThrower()
     
-
+class Firelem(BasicUnit):
+    #based of sample soldier for the start
+    def __init__(self, pos, **kwargs):
+        shape = Rect.createAtOrigin(32, 32)
+        
+        BasicUnit.__init__(self, pos, shape, **kwargs)
+        self.moveSpeed = 300;
+        self.rangedWeapon = KnifeThrower()
     
     
 class TestWorld(AbstractWorld):
@@ -635,19 +642,25 @@ class TestWorld(AbstractWorld):
     sold1 = Soldier(pos=(100,100))    
     self.objectList.append(sold1)
     
+    #add 1 firelem for testing
+    firelem1 = Firelem(pos = (100,200))
+    self.objectList.append(firelem1)
+    
             
     tw2 = TestWalker(pos=(300,300))
     self.objectList.extend([tw2])
     
     #setup controls for this testwalker
-    pc1 = PlayerController(sold1)
-    self.controllerList.append(pc1)
+    #pc1 = PlayerController(sold1)
+    #self.controllerList.append(pc1)
+    pc2 = PlayerController(firelem1)
+    self.controllerList.append(pc2)
     
     #Set the first camera to follow the first testWalker
     #Note: the render must be initialized before the world
     cam1 = glad.renderer.cameraList[0]
     #print cam1
-    cam1.followObject(sold1)
+    cam1.followObject(firelem1)
     
     
     cam1.setWorldBoundingRect((0,
