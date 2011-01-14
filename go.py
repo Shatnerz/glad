@@ -25,11 +25,12 @@ if __name__ == '__main__':
   renderer = sdl.Renderer()
   glad.renderer = renderer
   
+  #Load default glad graphics
+  resourceManager.registerGladResources()
+  
   #Load a test world
   world = glad.world = worldManager.TestWorld()
   
-  #Load default glad graphics
-  resourceManager.registerGladResources()
     
      
   while app.isRunning():

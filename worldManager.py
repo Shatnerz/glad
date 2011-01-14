@@ -277,6 +277,7 @@ class AbstractObject(object):
     #Set up the animation object
     #TODO: this is temporary for testing
     self.animation = TestAnimation(shape.getSize())
+    deleteThis = AndrewAnimation()
     
   def draw(self, screen, offset):
     
@@ -422,7 +423,7 @@ class TestAnimation(Animation):
     frameList = []
     
     if colorList is None:
-      colorList = [(0,0,64),(0,0,128),(0,0,192)]
+      colorList = [(255,0,0),(0,255,0),(0,0,255)]
             
     for c in colorList:
       f = pygame.Surface(size)
@@ -431,7 +432,14 @@ class TestAnimation(Animation):
     
     Animation.__init__(self,size,frameList,time,True)
     
-    
+class AndrewAnimation(Animation):
+  
+  def __init__(self, time=1.0):
+    #possible take sprite sheet as well
+    #sort sprite sheet int0 frame list
+    #print glad.resource.resourceDict
+    spriteSheet = glad.resource.get('firelem')
+    pass
  
  
 class PlayerController(object):
@@ -617,7 +625,7 @@ class Firelem(BasicUnit):
         shape = Rect.createAtOrigin(32, 32)
         
         BasicUnit.__init__(self, pos, shape, **kwargs)
-        self.moveSpeed = 300;
+        self.moveSpeed = 200;
         self.rangedWeapon = KnifeThrower()
     
     

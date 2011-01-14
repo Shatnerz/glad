@@ -102,8 +102,10 @@ def registerGladCharacters():
   for name, filename in spriteDict.iteritems():
     spriteFullname = os.path.join(titleFolder+'/spritesheets', filename+'.png')
     glad.resource.register(name, spriteFullname)
+    transColor = glad.resource.resourceDict[name].data.get_at((0,1))
+    glad.resource.resourceDict[name].data.set_colorkey(transColor)
     maskFullname = os.path.join(titleFolder+'/masks', filename+'_mask.png')
-    glad.resource.register(name, maskFullname)
+    glad.resource.register(name+'_mask', maskFullname)
     #try:
     #  image = pygame.image.load(fullname).convert()
     #  transColor = image.get_at((0,1))
@@ -111,9 +113,7 @@ def registerGladCharacters():
     #except pygame.error, msg:
     #  print 'Cannot load image:', fullname
     #  raise SystemExit, msg
-    #load spritesheet
-    #loadmask
-  #ANDREW, load what you need here 
+    
       
 def registerGladTiles():
   """This function loads all of the gladiator tiles"""
