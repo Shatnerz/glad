@@ -22,7 +22,8 @@ class App(object):
     self.simpleClock = pygame.time.Clock()
     self.inputInterface = InputInterface()   
     
-    self.desiredFPS = 30.0      
+    self.desiredFPS = 30.0
+    self.actualFPS = 30.0
     
   def getInputInterface(self):
     return self.inputInterface
@@ -53,7 +54,9 @@ class App(object):
         self.inputInterface.update(event)
         
     #limit the game speed
-    self.simpleClock.tick(self.desiredFPS)
+    
+    self.simpleClock.tick(self.desiredFPS)    
+    self.actualFPS = self.simpleClock.get_fps()
     
 class Camera(object):
   """Breaks the screen into windows we can draw to. Will be used
@@ -72,6 +75,8 @@ class Camera(object):
     self.objectFollowed = None
     
     self.worldBoundingRect = None
+    
+    self.overlay = Overlay(self.screen)
     
     
     
@@ -125,6 +130,58 @@ class Camera(object):
     the boundary, so that the player can see more"""
     
     self.worldBoundingRect = r    
+    
+    
+class Overlay(object):
+  
+  def __init__(self, surface):
+    
+    self.fontFilename = pygame.font.get_default_font()
+    self.fontSize = 12
+    
+    self.font = pygame.font.Font(self.fontFilename, self.fontSize)
+    
+    self.surface = surface
+    
+    
+  
+  def drawLineOfText(self, text, pos, antialias, color, background=None):
+    
+    newSurf = self.font.render(text, 
+                               antialias, 
+                               color, 
+                               background)
+    
+    #don't draw the background pixels when we blit
+    newSurf.set_colorkey(background)
+    
+    self.surface.blit(newSurf, pos)
+    
+    
+  def drawText(self, text, pos):
+    
+    xPos, yPos = pos
+    
+    
+    for line in text.split('\n'):
+      self.drawLineOfText(line, (xPos,yPos),False,(255,255,255),(0,255,0))
+      
+      yPos += self.font.get_linesize()
+    
+    
+    
+  def draw(self):    
+    
+    numObjects = len(glad.world.objectList)    
+    
+    fps = glad.app.actualFPS
+    
+    
+    text = '# objects: %d' % numObjects
+    text += '\nFPS: %0.2f' % fps
+    
+    
+    self.drawText(text, (700,50))   
     
 
 class InputInterface(object):
@@ -299,6 +356,9 @@ class Renderer(object):
                screen = self.screen)
     self.cameraList.append(c)
     
+    
+    self.bgSurface = None
+    
   def draw(self, world):
     """Draw each of the camera windows onto the rendering surface"""
     
@@ -318,13 +378,35 @@ class Renderer(object):
       screen.fill((0,255,0))
     
       #draw the world, offset by the camera position      
-      self.drawTiles(world.tileGrid, screen, offset)
+      #self.drawTiles(world.tileGrid, screen, offset)
+      self.drawBg(world.tileGrid, screen, offset)
 
       #draw the objects in the world
       world.draw(screen, offset)        
+      
+      #draw the overlay on top of the world
+      cam.overlay.draw()
   
       #using double buffered display, so flip
       pygame.display.flip()
+      
+      
+  def drawBg(self, tileGrid, screen, offset):
+    
+    #TODO: we should initialize somemplace else, like when the level loads, not
+    # on the first time we draw the bg    
+    if self.bgSurface is None:
+      
+      w, h = Renderer.tileSize
+      
+      self.bgSurface = pygame.Surface((w * len(tileGrid[0]),h*len(tileGrid)))
+      
+      Renderer.drawTiles(tileGrid,self.bgSurface,(0,0))
+      
+      
+    #TODO: increase speed by using area rect to draw only portion of source?
+    screen.blit(self.bgSurface, offset)    
+    
       
   @staticmethod
   def drawTiles(tileGrid, screen, offset):
