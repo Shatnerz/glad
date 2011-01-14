@@ -113,6 +113,17 @@ class Rect(object):
     by = max(a.y2,b.y2)
     
     return Rect(lx,ty,rx,by)
+  
+  def contains(self, point):
+    
+    if point[0] > self.x2 or point[1] > self.y2:
+      return False
+    
+    if point[0] < self.x1 or point[1] < self.y1:
+      return False
+    
+    return True
+    
     
   def getBoundingBox(self):
     """Since this is a rectangle, we just return a itself"""
