@@ -32,7 +32,7 @@ class ImageResource(AbstractResource):
         
     w, h = kwargs['size']
     
-    origSurface = pygame.image.load(filename) 
+    origSurface = pygame.image.load(filename).convert()
     
     
     
