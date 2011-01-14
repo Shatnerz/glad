@@ -6,19 +6,23 @@ import glad
 
 from util import Vector,Rect,getCollisionInfo,getOverlap
 
-
-
-
 class AbstractWorld(object):
   
   def __init__(self):
     self.objectList = []
     self.controllerList = []
+
     
-  def addObject(self, pos):
+  def addObject(self, obj):
     """Add an object to the world, throws exception if the object
     can't be placed there"""
-    pass
+    
+    #TODO: we should check for this somewhere, but not every time
+    #we are using a grid to for broad-phase collision
+    # detection, it assumes that no object is bigger than
+    # the given size
+  
+  #TODO: handle placing object on top of another object
   
   def draw(self, screen, offset):
     for o in self.objectList:
@@ -246,11 +250,26 @@ class AbstractWorld(object):
     
     #Finalize positions
     for o in self.objectList:
+      
+      #keep track of it's old position
+      lastPos = o.pos
+      #update it's position
       o.updatePos(time)
+      
+      #if object is outside of the world, kill it
+      #TODO: handle object end of life better
+      if not self.worldBoundingRect.contains(o.pos):
+        o.alive = False
+            
       
     #update animations, weapons, other stuff
     for o in self.objectList:
       o.update(time)
+      
+      
+    #remove all dead objects
+    self.objectList = [x for x in self.objectList if x.alive]
+    
 
 
 class AbstractObject(object):
@@ -261,6 +280,9 @@ class AbstractObject(object):
   def __init__(self, pos, shape, team, moveSpeed = 50.0, moveDir=None):
     
     #General
+    
+    #All objects are alive/enabled by default.
+    self.alive = True
     
     #Objects position (the center)
     self.pos = Vector(pos)
@@ -472,7 +494,30 @@ class CollisionFilter:
     
     return False
   
-     
+
+ 
+class CollisionGrid(object):
+  
+  def __init__(self, worldSize):
+    
+    self.maxObjectSize = (64,64)
+    
+    self.numCols = int(worldSize[0] / self.maxObjectSize[0])
+    self.numRows = int(worldSize[1] / self.maxObjectSize[1])    
+    
+    self.data = [[set() for x in range(self.numCols)] for y in range(self.numRows)]
+    
+    
+  def getObjectsNearPos(self,pos):
+    row = pos[1]/self.maxObjectSize[1]
+    col = pos[0]/self.maxObjectSize[0]
+    
+  def getObjectsNearGrid(self,row,col):
+    
+    pass
+  
+  def getObjectsInCell(self,row,col):
+    pass
       
       
 class TestAnimation(Animation):
@@ -539,7 +584,7 @@ class TestWalker(AbstractObject):
   
   def __init__(self, pos, **kwargs):    
     
-    shape = Rect.createAtOrigin(320, 320)    
+    shape = Rect.createAtOrigin(64, 64)    
     AbstractObject.__init__(self, pos, shape, **kwargs)
     
     self.collisionType = 'UNIT'
@@ -604,19 +649,14 @@ class BasicProjectile(AbstractObject):
     
     AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
     
-    print 'TEAM: ',team
-    
     self.collisionType = 'PROJECTILE'
     
     
     
     self.speed = 450.0
     
-    self.vel = moveDir*self.speed 
-    
-    
-    
-  
+    #NOTE: mut use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
   
   
 class KnifeThrower(object):
@@ -641,7 +681,7 @@ class KnifeThrower(object):
   def attack(self, pos, gap, orientation,team):
     
     if self.nextAttackTimer != 0.0 or self.knivesAvailable == 0:
-      print 'cooldown: ', self.nextAttackTimer, self.knivesAvailable
+      #print 'cooldown: ', self.nextAttackTimer, self.knivesAvailable
       return #do nothing
     
     self.knivesAvailable -= 1
@@ -655,6 +695,8 @@ class KnifeThrower(object):
     # spawn outside rect, or inside?
     
     knifePos = pos + orientation.getNormalized()*gap
+    
+    #print orientation.getNormalized() * gap
     
     
     
@@ -696,6 +738,9 @@ class TestWorld(AbstractWorld):
     #simple grass grid
     self.tileGrid = [[1 for x in range(gridWidth)] for y in range(gridHeight)]
     
+    
+    
+    
     #add 1 testwalker
     #tw = TestWalker(pos=(100,100), size=(32,32))
     #self.objectList.append(tw)
@@ -724,16 +769,17 @@ class TestWorld(AbstractWorld):
     #print cam1
     cam1.followObject(sold1)
     
+    #TODO: don't hardcode tile sizes
+    worldBoundingRect = (0,0,gridWidth*32,gridHeight*32)    
+    self.worldBoundingRect = Rect(*worldBoundingRect)
     
-    cam1.setWorldBoundingRect((0,
-                               0,
-                               gridWidth*32, #TODO: don't hardcode tile sizes
-                               gridHeight*32)) #TODO: don't hardcode tile sizes
+    cam1.setWorldBoundingRect(worldBoundingRect) #TODO: don't hardcode tile sizes
 
 
-
-
-
+    self.collisionGrid = CollisionGrid(worldBoundingRect[2:4])
+    
+    
+    
 
 
 
@@ -762,8 +808,7 @@ walkers
 
 
 
-
-
-
+Grid size:
+#when adding objects to world, check that they are smaller than cell size
 
 """
