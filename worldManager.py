@@ -387,32 +387,6 @@ class AbstractObject(object):
       self.vel = self.moveDir.getNormalized()*self.moveSpeed
     else:
       self.vel = Vector(0,0)
-      
-  def sortFrames(self, name):
-      
-    spriteSheet = glad.resource.get(name)
-      
-    #find individual sprite width(assuming all are same width)
-    spriteWidth = 0
-    for x in range(spriteSheet.get_width()):
-       #look for white pixel denoting sprite width
-      if spriteSheet.get_at((x,0)) == (255, 255, 255):
-         spriteWidth = x+1
-         break
-        
-    spriteHeight = spriteSheet.get_height()-1
-      
-    #Sort frames
-    frameList = []
-    point = 0
-    sheetWidth = spriteSheet.get_width()
-    numSprites = sheetWidth/spriteWidth
-    for sprite in xrange(numSprites):
-      frame = spriteSheet.subsurface((point, 1), (spriteWidth, spriteHeight))
-      point += spriteWidth
-      frameList.append(frame)
-        
-    return frameList  
         
   def updatePos(self, time):
     """Set the objects position equal to its requested position. Usually
@@ -564,12 +538,78 @@ class TestAnimation(Animation):
     
     Animation.__init__(self,size,frameList,time,True)
    
-   
-class AnimateDirection(Animation): #for any char
-  
-  def __init__(self, frames, direction, time=0.2):
     
-    directionDict = {'south' : 0,
+class AnimateUnit(Animation):
+  
+  def __init__(self, name, directionString, time = 0.2):
+    
+    #load spriteSheet
+    self.spriteSheet = glad.resource.get(name)
+    
+    #get size of each sprite
+    self.spriteWidth = self.getSpriteWidth()
+    self.spriteHeight = self.spriteSheet.get_height() - 1
+    size = (self.spriteWidth, self.spriteHeight)
+    
+    #sort all frames into a list
+    self.frameList = self.sortFrames()
+    
+    self.north = self.createAnimation('north')
+    self.east = self.createAnimation('east')
+    self.south = self.createAnimation('south')
+    self.west = self.createAnimation('west')
+    
+    self.northeast = self.createAnimation('northeast')
+    self.southeast = self.createAnimation('southeast')
+    self.southwest = self.createAnimation('southwest')
+    self.northwest = self.createAnimation('northwest')
+    
+    #used to determine animation based on direction string
+    self.animationDict = {'north' : self.north,
+                     'east' : self.east,
+                     'south' : self.south,
+                     'west' : self.west,
+                     'northeast' : self.northeast,
+                     'southeast' : self.southeast,
+                     'southwest' : self.southwest,
+                     'northwest' : self.northwest}  
+    
+    self.currentAnimation = self.animationDict[directionString]
+    
+    Animation.__init__(self, size, self.currentAnimation, time, True)
+    
+  def getSpriteWidth(self):
+    
+    #find individual sprite width(assuming all are same width)
+    spriteWidth = 0
+    for x in range(self.spriteSheet.get_width()):
+       #look for white pixel denoting sprite width
+      if self.spriteSheet.get_at((x,0)) == (255, 255, 255):
+         spriteWidth = x+1
+         break
+    return spriteWidth
+    
+  def sortFrames(self):
+    #sort frames into one list
+      
+    spriteWidth = self.spriteWidth     
+    spriteHeight = self.spriteHeight
+      
+    #Sort frames
+    frameList = []
+    point = 0
+    sheetWidth = self.spriteSheet.get_width()
+    numSprites = sheetWidth/spriteWidth
+    for sprite in xrange(numSprites):
+      frame = self.spriteSheet.subsurface((point, 1), (spriteWidth, spriteHeight))
+      point += spriteWidth
+      frameList.append(frame)
+        
+    return frameList
+  
+  def createAnimation(self, animationString):
+    #breakdown frame list into animations
+    animationDict = {'south' : 0,
                      'north' : 1,
                      'east' : 2,
                      'west' : 3,
@@ -577,20 +617,19 @@ class AnimateDirection(Animation): #for any char
                      'northeast' : 13,
                      'southeast' : 14,
                      'northwest' : 15}
-    
-    x = directionDict[direction]
+    x = animationDict[animationString]
     
     animation = []
-    animation.append(frames[x])
-    animation.append(frames[x+4])
-    animation.append(frames[x])
-    animation.append(frames[x+8])
+    animation.append(self.frameList[x])
+    animation.append(self.frameList[x+4])
+    animation.append(self.frameList[x])
+    animation.append(self.frameList[x+8])
     
-    width = frames[0].get_width()
-    height = frames[0].get_height()
-    size = (width, height)
-    
-    Animation.__init__(self, size, animation, time, True)
+    return animation
+  
+  def setAnimation(self, animationString):
+    if self.frameList != self.animationDict[animationString]:
+      self.frameList = self.animationDict[animationString]
           
  
 class PlayerController(object):
@@ -685,6 +724,29 @@ class BasicUnit(AbstractObject):
                              self.orientation,
                              self.team)
     pass
+  
+  def orientationToString(self):
+    #converts the orientation to a string
+    #makes it easier for animation
+    string = ''
+    if self.orientation[0] == 0 and self.orientation[1] < 0:
+      string = 'north'
+    elif self.orientation[0] == 0 and self.orientation[1] > 0:
+      string = 'south'
+    elif self.orientation[0] > 0 and self.orientation[1] == 0:
+      string = 'east'
+    elif self.orientation[0] < 0 and self.orientation[1] == 0:
+      string = 'west'
+    elif self.orientation[0] < 0 and self.orientation[1] < 0:
+      string = 'northwest'
+    elif self.orientation[0] > 0 and self.orientation[1] > 0:
+      string = 'southeast'
+    elif self.orientation[0] < 0 and self.orientation[1] > 0:
+      string = 'southwest'
+    elif self.orientation[0] > 0 and self.orientation[1] < 0:
+      string = 'northeast'
+    
+    return string
   
   def update(self, time):
     
@@ -785,35 +847,20 @@ class Firelem(BasicUnit):
         self.moveSpeed = 200;
         self.rangedWeapon = KnifeThrower()
         
-        self.frames = AbstractObject.sortFrames(self, 'firelem')
-        #load all animations now
-        self.north = AnimateDirection(self.frames, 'north')
-        self.east = AnimateDirection(self.frames, 'east')
-        self.south = AnimateDirection(self.frames, 'south')
-        self.west = AnimateDirection(self.frames, 'west')
-        self.northeast = AnimateDirection(self.frames, 'northeast')
-        self.southeast = AnimateDirection(self.frames, 'southeast')
-        self.southwest = AnimateDirection(self.frames, 'southwest')
-        self.sorthwest = AnimateDirection(self.frames, 'northwest')
-        
-        self.animation = self.south
+        #self.animation = self.south
+        self.directionString = self.orientationToString()
+        self.animation = AnimateUnit('firelem', self.directionString)
         
     def update(self, time):
-      #Change animation based on move dir
-      if self.moveDir[0] == 0 and self.moveDir[1] < 0:
-        if self.animation != self.north:
-          self.animation = self.north
-      elif self.moveDir[0] == 0 and self.moveDir[1] > 0:
-        if self.animation != self.south:
-          self.animation = self.south
-      elif self.moveDir[0] > 0 and self.moveDir[1] == 0:
-        if self.animation != self.east:
-          self.animation = self.east
-      elif self.moveDir[0] < 0 and self.moveDir[1] == 0:
-        if self.animation != self.west:
-          self.animation = self.west    
-      else:
-        self.animation = self.east
+      if self.rangedWeapon:
+        self.rangedWeapon.update(time)
+      
+      #update the orientation / which way the unit is facing
+      if not self.moveDir.isNullVector():
+        self.orientation = self.moveDir.copy()
+      
+      self.directionString = self.orientationToString()
+      self.animation.setAnimation(self.directionString)
     
       if self.animation:
         self.animation.update(time)
@@ -844,7 +891,7 @@ class TestWorld(AbstractWorld):
     self.objectList.append(sold1)
     
     #add 1 firelem for testing
-    firelem1 = Firelem(pos = (100,200))
+    firelem1 = Firelem(pos = (100,200), team = 2)
     self.objectList.append(firelem1)
     
     #TODO: put this someplace reasonable
