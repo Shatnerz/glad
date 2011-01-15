@@ -275,9 +275,9 @@ class AbstractObject(object):
     self.requestedPos = pos
     
     #Set up the animation object
+    self.frames = []
     #TODO: this is temporary for testing
     self.animation = TestAnimation(shape.getSize())
-    deleteThis = AndrewAnimation()
     
   def draw(self, screen, offset):
     
@@ -347,6 +347,32 @@ class AbstractObject(object):
       self.moveDir.normalize()
       
     self.vel = self.moveDir*self.moveSpeed
+    
+  def sortFrames(self, name):
+      
+    spriteSheet = glad.resource.get(name)
+      
+    #find individual sprite width(assuming all are same width)
+    spriteWidth = 0
+    for x in range(spriteSheet.get_width()):
+       #look for white pixel denoting sprite width
+      if spriteSheet.get_at((x,0)) == (255, 255, 255):
+         spriteWidth = x+1
+         break
+        
+    spriteHeight = spriteSheet.get_height()-1
+      
+    #Sort frames
+    frameList = []
+    point = 0
+    sheetWidth = spriteSheet.get_width()
+    numSprites = sheetWidth/spriteWidth
+    for sprite in xrange(numSprites):
+      frame = spriteSheet.subsurface((point, 1), (spriteWidth, spriteHeight))
+      point += spriteWidth
+      frameList.append(frame)
+        
+    return frameList  
         
   def updatePos(self, time):
     """Set the objects position equal to its requested position. Usually
@@ -416,6 +442,7 @@ class Animation(object):
     screen.blit(self.frameList[self.currentFrameIndex],
                 pyRect)
     
+    
 class TestAnimation(Animation):
   
   def __init__(self, size, time=1.0, colorList=None):
@@ -431,16 +458,35 @@ class TestAnimation(Animation):
       frameList.append(f)      
     
     Animation.__init__(self,size,frameList,time,True)
-    
-class AndrewAnimation(Animation):
+   
+   
+class AnimateDirection(Animation): #for any char
   
-  def __init__(self, time=1.0):
-    #possible take sprite sheet as well
-    #sort sprite sheet int0 frame list
-    #print glad.resource.resourceDict
-    spriteSheet = glad.resource.get('firelem')
-    pass
- 
+  def __init__(self, frames, direction, time=0.2):
+    
+    directionDict = {'south' : 0,
+                     'north' : 1,
+                     'east' : 2,
+                     'west' : 3,
+                     'southwest' : 12,
+                     'northeast' : 13,
+                     'southeast' : 14,
+                     'northwest' : 15}
+    
+    x = directionDict[direction]
+    
+    animation = []
+    animation.append(frames[x])
+    animation.append(frames[x+4])
+    animation.append(frames[x])
+    animation.append(frames[x+8])
+    
+    width = frames[0].get_width()
+    height = frames[0].get_height()
+    size = (width, height)
+    
+    Animation.__init__(self, size, animation, time, True)
+          
  
 class PlayerController(object):
   """Manipulate an object via input events""" 
@@ -627,6 +673,39 @@ class Firelem(BasicUnit):
         BasicUnit.__init__(self, pos, shape, **kwargs)
         self.moveSpeed = 200;
         self.rangedWeapon = KnifeThrower()
+        
+        self.frames = AbstractObject.sortFrames(self, 'firelem')
+        #load all animations now
+        self.north = AnimateDirection(self.frames, 'north')
+        self.east = AnimateDirection(self.frames, 'east')
+        self.south = AnimateDirection(self.frames, 'south')
+        self.west = AnimateDirection(self.frames, 'west')
+        self.northeast = AnimateDirection(self.frames, 'northeast')
+        self.southeast = AnimateDirection(self.frames, 'southeast')
+        self.southwest = AnimateDirection(self.frames, 'southwest')
+        self.sorthwest = AnimateDirection(self.frames, 'northwest')
+        
+        self.animation = self.south
+        
+    def update(self, time):
+      #Change animation based on move dir
+      if self.moveDir[0] == 0 and self.moveDir[1] < 0:
+        if self.animation != self.north:
+          self.animation = self.north
+      elif self.moveDir[0] == 0 and self.moveDir[1] > 0:
+        if self.animation != self.south:
+          self.animation = self.south
+      elif self.moveDir[0] > 0 and self.moveDir[1] == 0:
+        if self.animation != self.east:
+          self.animation = self.east
+      elif self.moveDir[0] < 0 and self.moveDir[1] == 0:
+        if self.animation != self.west:
+          self.animation = self.west    
+      else:
+        self.animation = self.east
+    
+      if self.animation:
+        self.animation.update(time)
     
     
 class TestWorld(AbstractWorld):
