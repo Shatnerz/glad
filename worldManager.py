@@ -311,6 +311,7 @@ class AbstractObject(object):
     self.orientation = None
     
     #Set up the animation object
+    self.frames = []
     #TODO: this is temporary for testing
     self.animation = TestAnimation(shape.getSize())
     
@@ -386,6 +387,32 @@ class AbstractObject(object):
       self.vel = self.moveDir.getNormalized()*self.moveSpeed
     else:
       self.vel = Vector(0,0)
+      
+  def sortFrames(self, name):
+      
+    spriteSheet = glad.resource.get(name)
+      
+    #find individual sprite width(assuming all are same width)
+    spriteWidth = 0
+    for x in range(spriteSheet.get_width()):
+       #look for white pixel denoting sprite width
+      if spriteSheet.get_at((x,0)) == (255, 255, 255):
+         spriteWidth = x+1
+         break
+        
+    spriteHeight = spriteSheet.get_height()-1
+      
+    #Sort frames
+    frameList = []
+    point = 0
+    sheetWidth = spriteSheet.get_width()
+    numSprites = sheetWidth/spriteWidth
+    for sprite in xrange(numSprites):
+      frame = spriteSheet.subsurface((point, 1), (spriteWidth, spriteHeight))
+      point += spriteWidth
+      frameList.append(frame)
+        
+    return frameList  
         
   def updatePos(self, time):
     """Set the objects position equal to its requested position. Usually
@@ -470,6 +497,7 @@ class CollisionFilter:
   @staticmethod
   def canCollide(a, b):   
     
+    
     ac = CollisionFilter.alwaysCollides
     ec = CollisionFilter.enemyCollides
     
@@ -527,7 +555,7 @@ class TestAnimation(Animation):
     frameList = []
     
     if colorList is None:
-      colorList = [(0,0,64),(0,0,128),(0,0,192)]
+      colorList = [(255,0,0),(0,255,0),(0,0,255)]
             
     for c in colorList:
       f = pygame.Surface(size)
@@ -535,9 +563,35 @@ class TestAnimation(Animation):
       frameList.append(f)      
     
     Animation.__init__(self,size,frameList,time,True)
+   
+   
+class AnimateDirection(Animation): #for any char
+  
+  def __init__(self, frames, direction, time=0.2):
     
+    directionDict = {'south' : 0,
+                     'north' : 1,
+                     'east' : 2,
+                     'west' : 3,
+                     'southwest' : 12,
+                     'northeast' : 13,
+                     'southeast' : 14,
+                     'northwest' : 15}
     
- 
+    x = directionDict[direction]
+    
+    animation = []
+    animation.append(frames[x])
+    animation.append(frames[x+4])
+    animation.append(frames[x])
+    animation.append(frames[x+8])
+    
+    width = frames[0].get_width()
+    height = frames[0].get_height()
+    size = (width, height)
+    
+    Animation.__init__(self, size, animation, time, True)
+          
  
 class PlayerController(object):
   """Manipulate an object via input events""" 
@@ -722,7 +776,47 @@ class Soldier(BasicUnit):
     self.moveSpeed = 300.0
     self.rangedWeapon = KnifeThrower()
     
-
+class Firelem(BasicUnit):
+    #based of sample soldier for the start
+    def __init__(self, pos, **kwargs):
+        shape = Rect.createAtOrigin(32, 32)
+        
+        BasicUnit.__init__(self, pos, shape, **kwargs)
+        self.moveSpeed = 200;
+        self.rangedWeapon = KnifeThrower()
+        
+        self.frames = AbstractObject.sortFrames(self, 'firelem')
+        #load all animations now
+        self.north = AnimateDirection(self.frames, 'north')
+        self.east = AnimateDirection(self.frames, 'east')
+        self.south = AnimateDirection(self.frames, 'south')
+        self.west = AnimateDirection(self.frames, 'west')
+        self.northeast = AnimateDirection(self.frames, 'northeast')
+        self.southeast = AnimateDirection(self.frames, 'southeast')
+        self.southwest = AnimateDirection(self.frames, 'southwest')
+        self.sorthwest = AnimateDirection(self.frames, 'northwest')
+        
+        self.animation = self.south
+        
+    def update(self, time):
+      #Change animation based on move dir
+      if self.moveDir[0] == 0 and self.moveDir[1] < 0:
+        if self.animation != self.north:
+          self.animation = self.north
+      elif self.moveDir[0] == 0 and self.moveDir[1] > 0:
+        if self.animation != self.south:
+          self.animation = self.south
+      elif self.moveDir[0] > 0 and self.moveDir[1] == 0:
+        if self.animation != self.east:
+          self.animation = self.east
+      elif self.moveDir[0] < 0 and self.moveDir[1] == 0:
+        if self.animation != self.west:
+          self.animation = self.west    
+      else:
+        self.animation = self.east
+    
+      if self.animation:
+        self.animation.update(time)
     
     
 class TestWorld(AbstractWorld):
@@ -749,6 +843,10 @@ class TestWorld(AbstractWorld):
     sold1 = Soldier(pos=(100,100),team=1)    
     self.objectList.append(sold1)
     
+    #add 1 firelem for testing
+    firelem1 = Firelem(pos = (100,200))
+    self.objectList.append(firelem1)
+    
     #TODO: put this someplace reasonable
     sold1.team = 1
     
@@ -760,14 +858,16 @@ class TestWorld(AbstractWorld):
     tw2.team = 2
     
     #setup controls for this testwalker
-    pc1 = PlayerController(sold1)
-    self.controllerList.append(pc1)
+    #pc1 = PlayerController(sold1)
+    #self.controllerList.append(pc1)
+    pc2 = PlayerController(firelem1)
+    self.controllerList.append(pc2)
     
     #Set the first camera to follow the first testWalker
     #Note: the render must be initialized before the world
     cam1 = glad.renderer.cameraList[0]
     #print cam1
-    cam1.followObject(sold1)
+    cam1.followObject(firelem1)
     
     #TODO: don't hardcode tile sizes
     worldBoundingRect = (0,0,gridWidth*32,gridHeight*32)    

@@ -48,10 +48,10 @@ class App(object):
     
       if event.type == pygame.QUIT:
         logging.info('pygame exit event detected')
-        self.exit()        
+        self.exit()   
       else:
         #update the state of keys, joysticks, etc...
-        self.inputInterface.update(event)
+        self.inputInterface.update(event) 
         
     #limit the game speed
     
@@ -194,6 +194,10 @@ class InputInterface(object):
 
     if event.type == pygame.KEYDOWN:
       self.keysPressed.add(event.key)
+      
+      #Quit if esc is pressed
+      if event.key == pygame.K_ESCAPE:
+        exit()
       
     elif event.type == pygame.KEYUP:
       #BUGFIX: use discard, because keys may be pressed at program start
@@ -425,9 +429,13 @@ class Renderer(object):
         
         tile = glad.resource.get(tileName)    
         
-        screen.blit(tile, (left,top,
-                           Renderer.tileSize[0],
-                           Renderer.tileSize[1]))
+        #screen.blit(tile, (left,top,
+        #                  Renderer.tileSize[0],
+        #                  Renderer.tileSize[1]))
+        #Does not blit top line of black pixels
+        screen.blit(tile, (left,top),((0,1),
+                                      (Renderer.tileSize[0],
+                                       Renderer.tileSize[1])))
         
 
 

@@ -30,16 +30,14 @@ class ImageResource(AbstractResource):
     kwargs = self.kwargs
     filename = self.filename
         
-    w, h = kwargs['size']
+    #w, h = kwargs['size']
     
     origSurface = pygame.image.load(filename).convert()
     
-    
-    
-    
     #we have to get the subsurface because the first row is black pixels
-    self.data = origSurface.subsurface(0,1,w,h)
-    
+    #self.data = origSurface.subsurface(offX,offY,w,h)
+    self.data = origSurface
+        
     
 class ResourceManager(object):
   """Keep track of all the images we need and whether or not they are
@@ -75,7 +73,47 @@ def registerGladResources():
 def registerGladCharacters():
   """Load all the characters into the game"""
   
-  #ANDREW, load what you need here 
+  titleFolder = 'resources/sprites'
+  
+  #dont need dictionary here
+  spriteDict = {'archer': 'archer',
+                'archmage': 'archmage',
+                'barby': 'barby',
+                'b_slime': 'b_slime',
+                'cleric': 'cleric',
+                'druid': 'druid',
+                'elf': 'elf',
+                'faerie': 'faerie',
+                'firelem': 'firelem',
+                'footman': 'footman',
+                'ghost': 'ghost',
+                'golem': 'golem',
+                'mage': 'mage',
+                'm_slime': 'm_slime',
+                'orc': 'orc',
+                'orc2': 'orc2',
+                'skeleton': 'skeleton',
+                's_slime': 's_slime',
+                'thief': 'thief',}
+  
+  
+  #register all sprites and masks for game
+  #loads spritesheets and sets the top left corner as transparency
+  for name, filename in spriteDict.iteritems():
+    spriteFullname = os.path.join(titleFolder+'/spritesheets', filename+'.png')
+    glad.resource.register(name, spriteFullname)
+    transColor = glad.resource.resourceDict[name].data.get_at((0,1))
+    glad.resource.resourceDict[name].data.set_colorkey(transColor)
+    maskFullname = os.path.join(titleFolder+'/masks', filename+'_mask.png')
+    glad.resource.register(name+'_mask', maskFullname)
+    #try:
+    #  image = pygame.image.load(fullname).convert()
+    #  transColor = image.get_at((0,1))
+    #  image.set_colorkey(transColor)
+    #except pygame.error, msg:
+    #  print 'Cannot load image:', fullname
+    #  raise SystemExit, msg
+    
       
 def registerGladTiles():
   """This function loads all of the gladiator tiles"""
@@ -83,9 +121,10 @@ def registerGladTiles():
   #TODO: in future, register automatically, not manually
   
   
-  tileFolder = '/home/chris/glad/resources/images/' 
+  tileFolder = 'resources/images/' 
   
   tileSize = (32,32)
+  offset = (0,1)
   
   tileDict = {'PIX_BOULDER_1': '16stone1.tga',
               'PIX_BOULDER_2': '16stone2.tga',
@@ -226,4 +265,4 @@ def registerGladTiles():
   for name, filename in tileDict.iteritems():    
     glad.resource.register(name, 
                            os.path.join(tileFolder,filename), 
-                           size=tileSize)
+                           size=tileSize, offset=offset)
