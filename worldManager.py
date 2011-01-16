@@ -318,6 +318,11 @@ class AbstractObject(object):
     #set the team property
     self.team = team
     
+    #Turning
+    self.turning = False
+    self.turnTime = 0.05
+    self.turnTimer = 0
+    
   def draw(self, screen, offset):
     
     #draw the animation, centered at the objects position
@@ -376,17 +381,67 @@ class AbstractObject(object):
     """Indicate when preferred direction this object wants to go"""  
     
     assert direction is not None
-
-    #update the direction
-    self.moveDir = Vector(direction)
     
-    #update the objects velocity
-    #TODO: what if the move direction is 0 vector?    
-    if not self.moveDir.isNullVector():
-      #self.moveDir.normalize()
-      self.vel = self.moveDir.getNormalized()*self.moveSpeed
+    if direction != (0, 0):
+      normalizedOrientation = self.orientation.getNormalized()
+      normalizedDirection = Vector(direction).getNormalized()
+      if normalizedOrientation == normalizedDirection:
+        #only move if facing the right direction, else turn
+      
+        #update the direction
+        self.moveDir = Vector(direction)
+        
+        self.vel = self.moveDir.getNormalized()*self.moveSpeed
+        self.turning = False
+        
+        #update the objects velocity
+        #TODO: what if the move direction is 0 vector?    
+        #if not self.moveDir.isNullVector():
+          #self.moveDir.normalize()
+          #self.vel = self.moveDir.getNormalized()*self.moveSpeed
+        #else:
+          #self.vel = Vector(0,0)
+      else:
+        self.turning = True
+        self.vel = Vector(0,0)
+        self.turn(Vector(direction))
     else:
+      #not trying to move
       self.vel = Vector(0,0)
+      self.turning = False
+      
+  def turn(self, direction):
+    """Use cross product to find the best direction and turns 45 degrees"""
+    
+    if self.orientation.getNormalized() != direction.getNormalized(): #prevents over turning incase time is large
+      if self.turnTimer >= self.turnTime:
+    
+        o = self.orientation.getNormalized()
+        d = direction.getNormalized()
+        value = o[0]*d[1] - o[1]*d[0]
+    
+        sinCos = 0.707106781 #rotate 45  degrees so sin and cos are equal
+        if value >= 0:
+          x = self.orientation[0]*sinCos - self.orientation[1]*sinCos
+          y = self.orientation[0]*sinCos + self.orientation[1]*sinCos
+        else:
+          x = self.orientation[0]*sinCos + self.orientation[1]*sinCos
+          y = self.orientation[1]*sinCos - self.orientation[0]*sinCos
+      
+          #Smooths out all rounding errors
+          if x > 0:
+            x = 1
+          elif x < 0:
+            x = -1
+          if y > 0:
+            y = 1
+          elif y < 0:
+            y = -1
+      
+        self.orientation = Vector(x,y)
+      
+        self.turnTimer -= self.turnTime
+        self.turn(direction) #turns again if time exceeds one turn, but dont want to overturn
         
   def updatePos(self, time):
     """Set the objects position equal to its requested position. Usually
@@ -404,6 +459,10 @@ class AbstractObject(object):
     
     if self.animation:
       self.animation.update(time)
+    
+    #update turning clock  
+    if self.turning:
+      self.turnTimer += time
 
 class Animation(object):
   def __init__(self, size, frameList, timer, loop=False):
@@ -754,6 +813,9 @@ class BasicUnit(AbstractObject):
     
     self.alwaysMove = False
     
+    #turning
+    self.turnTime = 0.08
+    
   def attack(self):
     self.rangedAttack()
     pass
@@ -804,8 +866,10 @@ class BasicUnit(AbstractObject):
       self.rangedWeapon.update(time)
     
     #update the orientation / which way the unit is facing
-    if not self.moveDir.isNullVector():
-      self.orientation = self.moveDir.copy()   
+    #if not self.moveDir.isNullVector():
+     # self.orientation = self.moveDir.copy()
+    #no longer needed
+    #updates on move request and turn   
     
     self.directionString = self.orientationToString()
     self.animation.setAnimation(self.directionString)
@@ -813,6 +877,8 @@ class BasicUnit(AbstractObject):
     #Update the abstract object/draw the scene
     #AbstractObject.update(self, time)
     
+    if self.turning:
+      self.turnTimer += time
     #animate only if moving
     if self.alwaysMove == False:
       if self.vel[0] != 0 or self.vel[1] != 0:

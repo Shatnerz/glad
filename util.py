@@ -35,7 +35,15 @@ class Vector(object):
     for x in range(len(self)):
       data[x] = self.data[x] + v.data[x]
       
-    return Vector(data)     
+    return Vector(data)
+  
+  def __sub__(self,v):
+    
+    a = self*-1
+    return a+v
+  
+  def __eq__(self, v):    
+    return (self-v).isNullVector()     
   
   def __getitem__(self, i):
     return self.data[i]
