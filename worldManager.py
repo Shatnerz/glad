@@ -620,6 +620,17 @@ class AnimateUnit(Animation):
     #sort all frames into a list
     self.frameList = self.sortFrames()
     
+    ###################################################Revise##################################
+    #used when sorting frames into animations
+    self.animationReference = {'south' : 0,
+                               'north' : 1,
+                               'east' : 2,
+                               'west' : 3,
+                               'southwest' : 12,
+                               'northeast' : 13,
+                               'southeast' : 14,
+                               'northwest' : 15}
+    
     self.north = self.createAnimation('north')
     self.east = self.createAnimation('east')
     self.south = self.createAnimation('south')
@@ -675,16 +686,9 @@ class AnimateUnit(Animation):
   
   def createAnimation(self, animationString):
     """breakdown frame list into animations"""
+    #only works for walking now
     
-    animationDict = {'south' : 0,
-                     'north' : 1,
-                     'east' : 2,
-                     'west' : 3,
-                     'southwest' : 12,
-                     'northeast' : 13,
-                     'southeast' : 14,
-                     'northwest' : 15}
-    x = animationDict[animationString]
+    x = self.animationReference[animationString]
     
     animation = []
     animation.append(self.frameList[x])
@@ -700,6 +704,7 @@ class AnimateUnit(Animation):
   
   def colorize(self):
     """Colorize spriteSheet using self.hue and self.mask"""
+    #possibly add something to lighten/darken colors to add more team colors
     
     for x in range(self.mask.get_width()):
       for y in range(self.mask.get_height()):
@@ -733,9 +738,8 @@ class AnimateUnit(Animation):
           #set color
           color.hsva = (hue, sat, value, alpha)
           self.spriteSheet.set_at((x, y), (color))
-          #possible add something to lighten/darken colors to add more team colors
-          
- 
+
+
 class PlayerController(object):
   """Manipulate an object via input events""" 
   
@@ -877,6 +881,7 @@ class BasicUnit(AbstractObject):
     #Update the abstract object/draw the scene
     #AbstractObject.update(self, time)
     
+    #update turnTime
     if self.turning:
       self.turnTimer += time
     #animate only if moving
