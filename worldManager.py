@@ -599,9 +599,9 @@ class TestAnimation(Animation):
     
   def setAnimation(selfself, string):
     pass
-   
-    
+       
 class AnimateUnit(Animation):
+  
   """Animation class for all generic units"""
   def __init__(self, name, directionString, hue = 180, time = 0.2):
     
@@ -615,10 +615,10 @@ class AnimateUnit(Animation):
     #get size of each sprite
     self.spriteWidth = self.getSpriteWidth()
     self.spriteHeight = self.spriteSheet.get_height() - 1
-    size = (self.spriteWidth, self.spriteHeight)
+    self.size = (self.spriteWidth, self.spriteHeight)
     
     #sort all frames into a list
-    self.frameList = self.sortFrames()
+    self.allFramesList = self.sortFrames()
     
     ###################################################Revise##################################
     #used when sorting frames into animations
@@ -653,7 +653,7 @@ class AnimateUnit(Animation):
     
     self.currentAnimation = self.animationDict[directionString]
     
-    Animation.__init__(self, size, self.currentAnimation, time, True)
+    Animation.__init__(self, self.size, self.currentAnimation, time, True)
     
   def getSpriteWidth(self):
     """find individual sprite width(assuming all are same width)"""
@@ -691,10 +691,10 @@ class AnimateUnit(Animation):
     x = self.animationReference[animationString]
     
     animation = []
-    animation.append(self.frameList[x])
-    animation.append(self.frameList[x+4])
-    animation.append(self.frameList[x])
-    animation.append(self.frameList[x+8])
+    animation.append(self.allFramesList[x])
+    animation.append(self.allFramesList[x+4])
+    animation.append(self.allFramesList[x])
+    animation.append(self.allFramesList[x+8])
     
     return animation
   
@@ -739,6 +739,183 @@ class AnimateUnit(Animation):
           color.hsva = (hue, sat, value, alpha)
           self.spriteSheet.set_at((x, y), (color))
 
+  def meleeAttack(self, directionString):
+    """Set the animation to the melee attack animation for the direction"""
+    attackAnimation = []
+    direction = self.animationDict[directionString]
+    attackAnimation.append(direction[1])
+    attackAnimation.append(direction[0])
+    
+    self.frameList = attackAnimation
+    
+  def rangedAttack(self, directionString):
+    """Set the animation to ranged attack, which is typically the melee animation"""
+    self.meleeAttack(directionString)
+
+class AnimateMage(AnimateUnit):
+  """Animation class for all mages"""
+  
+  def __init__(self, name, directionString, hue = 180, time = 0.2):
+    #copied the code for animateUnit but changed animation reference
+    #load spriteSheet
+    self.spriteSheet = glad.resource.get(name)
+    self.mask = glad.resource.get(name+'_mask')
+    #set color
+    self.hue = hue
+    self.colorize()
+    
+    #get size of each sprite
+    self.spriteWidth = self.getSpriteWidth()
+    self.spriteHeight = self.spriteSheet.get_height() - 1
+    self.size = (self.spriteWidth, self.spriteHeight)
+    
+    #sort all frames into a list
+    self.allFramesList = self.sortFrames()
+    
+    #used when sorting frames into animations
+    self.animationReference = {'south' : 0,
+                               'north' : 1,
+                               'east' : 2,
+                               'west' : 3,
+                               'southwest' : 20,
+                               'northeast' : 21,
+                               'southeast' : 22,
+                               'northwest' : 23}
+    
+    self.north = self.createAnimation('north')
+    self.east = self.createAnimation('east')
+    self.south = self.createAnimation('south')
+    self.west = self.createAnimation('west')
+    
+    self.northeast = self.createAnimation('northeast')
+    self.southeast = self.createAnimation('southeast')
+    self.southwest = self.createAnimation('southwest')
+    self.northwest = self.createAnimation('northwest')
+    
+    #used to determine animation based on direction string
+    self.animationDict = {'north' : self.north,
+                     'east' : self.east,
+                     'south' : self.south,
+                     'west' : self.west,
+                     'northeast' : self.northeast,
+                     'southeast' : self.southeast,
+                     'southwest' : self.southwest,
+                     'northwest' : self.northwest}  
+    
+    self.currentAnimation = self.animationDict[directionString]
+    
+    Animation.__init__(self, self.size, self.currentAnimation, time, True)
+    
+  def rangedAttack(self, directionString):
+    """Set animation to attack for mage"""
+    attackAnimation = []
+    direction = self.animationDict[directionString]
+    
+    #diction of which frames from allFramesList are attack
+    attackDict = {'south' : 16,
+                  'north' : 17,
+                  'east' : 18,
+                  'west' : 19,
+                  'southwest' : 32,
+                  'northeast' : 33,
+                  'southeast' : 34,
+                  'northwest' : 35}
+    
+    attackAnimation.append(self.allFramesList[attackDict[directionString]])
+    attackAnimation.append(direction[0])
+    
+    self.frameList = attackAnimation 
+        
+class AnimateSmallSlime(AnimateUnit):
+  
+  """Animation class for only small slimes"""
+  
+  def __init__(self, name, hue = 180, time = 0.2):
+    #copied the code for animateUnit but changed animation reference
+    #load spriteSheet
+    self.spriteSheet = glad.resource.get(name)
+    self.mask = glad.resource.get(name+'_mask')
+    #set color
+    self.hue = hue
+    self.colorize()
+    
+    #get size of each sprite
+    self.spriteWidth = self.getSpriteWidth()
+    self.spriteHeight = self.spriteSheet.get_height() - 1
+    self.size = (self.spriteWidth, self.spriteHeight)
+    
+    #sort all frames into a list
+    self.allFramesList = self.sortFrames()
+    
+    self.north = self.createAnimation()
+    self.east = self.north
+    self.south = self.north
+    self.west = self.north
+    
+    self.northeast = self.north
+    self.southeast = self.north
+    self.southwest = self.north
+    self.northwest = self.north
+    
+    #used to determine animation based on direction string
+    self.animationDict = {'north' : self.north,
+                     'east' : self.east,
+                     'south' : self.south,
+                     'west' : self.west,
+                     'northeast' : self.northeast,
+                     'southeast' : self.southeast,
+                     'southwest' : self.southwest,
+                     'northwest' : self.northwest}  
+    
+    self.currentAnimation = self.north #doesnt matter they are all the same
+    
+    Animation.__init__(self, self.size, self.currentAnimation, time, True)
+    
+  def createAnimation(self):
+    animation = []
+    for x in range(8):
+      animation.append(self.allFramesList[x])
+    x = 6
+    while x > 0:
+      animation.append(self.allFramesList[x])
+      x -= 1
+    return animation
+
+class AnimateMediumSlime(AnimateSmallSlime):
+  """Animation class for only medium slimes"""
+  
+  def __init__(self, name, hue = 180, time = 0.2):
+    
+    AnimateSmallSlime.__init__(self, name, hue, time)
+    
+  def createAnimation(self):
+    animation = []
+    for x in range(12):
+      animation.append(self.allFramesList[x])
+    x = 10
+    while x > 0:
+      animation.append(self.allFramesList[x])
+      x -= 1
+    return animation
+  
+class AnimateBigSlime(AnimateSmallSlime):
+  """Animation class for only big slimes"""
+  #TODO: ill add splitting animations when i add special animations
+  #also i only use the first 3 frames for moving
+  
+  def __init__(self, name, hue = 180, time = 0.2):
+    
+    AnimateSmallSlime.__init__(self, name, hue, time)
+    
+  def createAnimation(self):
+    animation = []
+    for x in range(3):
+      animation.append(self.allFramesList[x])
+    x = 1
+    while x > 0:
+      animation.append(self.allFramesList[x])
+      x -= 1
+    return animation
 
 class PlayerController(object):
   """Manipulate an object via input events""" 
@@ -776,11 +953,7 @@ class PlayerController(object):
     #attack
     if glad.input.isKeyPressed(self.attack):
       self.target.attack()
-    
-
-
-
-  
+     
 class TestWalker(AbstractObject):
   
   def __init__(self, pos, **kwargs):    
@@ -820,15 +993,24 @@ class BasicUnit(AbstractObject):
     #turning
     self.turnTime = 0.08
     
+    #Attacking
+    self.meleeAttacking = False #is sprite attacking at the moment
+    self.rangedAttacking = False
+    
   def attack(self):
+    #self.animation.rangedAttack(self.orientationToString())
+    #NEED TO SET ATTACK ANIMATION WHEN ATTACKING
+    #ALSO SYNC IT WITH THE ATTACKS (during attack - frame 1, between attacks - frame 2)
     self.rangedAttack()
     pass
     
   def meleeAttack(self, target):
+    self.meleeAttacking = True
+    #self.meleeAttacking = False When attack is finished
     pass
   
   def rangedAttack(self):
-    
+    self.rangedAttacking = True
     #spawn the ranged attack just outside of the rect
     
     #gap = space between center of player and center of projectile
@@ -839,7 +1021,6 @@ class BasicUnit(AbstractObject):
                              gap, 
                              self.orientation,
                              self.team)
-    pass
   
   def orientationToString(self):
     #converts the orientation to a string
@@ -877,6 +1058,7 @@ class BasicUnit(AbstractObject):
     
     self.directionString = self.orientationToString()
     self.animation.setAnimation(self.directionString)
+    self.animation.meleeAttack(self.directionString)
     
     #Update the abstract object/draw the scene
     #AbstractObject.update(self, time)
@@ -884,6 +1066,21 @@ class BasicUnit(AbstractObject):
     #update turnTime
     if self.turning:
       self.turnTimer += time
+      
+    #attacking COULD CLEANUP ALOT
+    if self.meleeAttacking:
+      pass
+    #  self.animation.meleeAttack(self.directionString)
+      #if not self.alwaysMove: #update animation if its not always updated
+    #  if self.animation:
+    #    self.animation.update(time)
+    elif self.rangedAttacking:
+      pass
+      #self.animation.rangedAttack(self.directionString) #WHY DOES THIS CAUSE AN ERROR?????????/
+      #if not self.alwaysMove: #update animation if its not always updated
+    #  if self.animation:
+    #    self.animation.update(time)
+        
     #animate only if moving
     if self.alwaysMove == False:
       if self.vel[0] != 0 or self.vel[1] != 0:
@@ -918,7 +1115,7 @@ class KnifeThrower(object):
     self.knivesAvailable = 99
     
     self.nextAttackTimer = 0.0
-    self.attackCooldown = 0.1
+    self.attackCooldown = 0.9
     
   def update(self, time):
     
@@ -931,7 +1128,7 @@ class KnifeThrower(object):
     
     if self.nextAttackTimer != 0.0 or self.knivesAvailable == 0:
       #print 'cooldown: ', self.nextAttackTimer, self.knivesAvailable
-      return #do nothing
+      return#do nothing
     
     self.knivesAvailable -= 1
     self.nextAttackTimer += self.attackCooldown
@@ -953,9 +1150,9 @@ class KnifeThrower(object):
     
     
     glad.world.objectList.append(proj)
-#    TODO: spawn knife here
+#   TODO: spawn knife here
     
-      
+    
 
 class Soldier(BasicUnit):
   
@@ -993,6 +1190,17 @@ class Archer(BasicUnit):
     self.rangedWeapon = KnifeThrower()
     
     self.animation = AnimateUnit('archer', self.directionString)
+    
+class Archmage(BasicUnit):
+  
+  def __init__(self, pos, **kwargs):
+    shape = Rect.createAtOrigin(32, 28)
+    
+    BasicUnit.__init__(self, pos, shape, **kwargs)
+    
+    self.rangedWeapon = KnifeThrower()
+    
+    self.animation = AnimateMage('archmage', self.directionString)
 
 class Barbarian(BasicUnit):
   
@@ -1071,7 +1279,18 @@ class Golem(BasicUnit):
     
     self.rangedWeapon = KnifeThrower()
     
-    self.animation = AnimateUnit('golem', self.directionString) 
+    self.animation = AnimateUnit('golem', self.directionString)
+    
+class Mage(BasicUnit):
+  
+  def __init__(self, pos, **kwargs):
+    shape = Rect.createAtOrigin(32, 28)
+    
+    BasicUnit.__init__(self, pos, shape, **kwargs)
+    
+    self.rangedWeapon = KnifeThrower()
+    
+    self.animation = AnimateMage('mage', self.directionString) 
 
 class Orc(BasicUnit):
   
@@ -1105,6 +1324,45 @@ class Skeleton(BasicUnit):
     self.rangedWeapon = KnifeThrower()
     
     self.animation = AnimateUnit('skeleton', self.directionString) 
+    
+class SmallSlime(BasicUnit):
+  
+  def __init__(self, pos, **kwargs):
+    shape = Rect.createAtOrigin(24, 24)
+    
+    BasicUnit.__init__(self, pos, shape, **kwargs)
+    
+    self.rangedWeapon = KnifeThrower()
+    
+    self.alwaysMove = True
+    
+    self.animation = AnimateSmallSlime('s_slime')
+
+class MediumSlime(BasicUnit):
+  
+  def __init__(self, pos, **kwargs):
+    shape = Rect.createAtOrigin(40, 40)
+    
+    BasicUnit.__init__(self, pos, shape, **kwargs)
+    
+    self.rangedWeapon = KnifeThrower()
+    
+    self.alwaysMove = True
+    
+    self.animation = AnimateMediumSlime('m_slime')
+    
+class BigSlime(BasicUnit):
+  
+  def __init__(self, pos, **kwargs):
+    shape = Rect.createAtOrigin(64, 64)
+    
+    BasicUnit.__init__(self, pos, shape, **kwargs)
+    
+    self.rangedWeapon = KnifeThrower()
+    
+    self.alwaysMove = True
+    
+    self.animation = AnimateBigSlime('b_slime')
     
 class Thief(BasicUnit):
   
@@ -1148,31 +1406,41 @@ class TestWorld(AbstractWorld):
     #add one of each unit for testing
     archer1 = Archer(pos=(700, 650))
     barby1 = Barbarian(pos=(650, 650))
-    cleric1 = Cleric(pos=(650, 700))
-    druid1 = Druid(pos=(650, 750))
-    elf1 = Elf(pos=(700, 750))
-    faerie1 = Faerie(pos=(750, 650))
-    ghost1 = Ghost(pos=(750, 700))
-    golem1 = Golem(pos=(850, 700))
-    orc1 = Orc(pos=(750, 750))
-    orcCap1 = OrcCaptain(pos=(700, 800))
-    skel1 = Skeleton(pos=(600, 700))
-    thief1 = Thief(pos=(700, 600))
-    sold2 = Soldier(pos=(600, 600))
+    #cleric1 = Cleric(pos=(650, 700))
+    #druid1 = Druid(pos=(650, 750))
+    #elf1 = Elf(pos=(700, 750))
+    #faerie1 = Faerie(pos=(750, 650))
+    #ghost1 = Ghost(pos=(750, 700))
+    #golem1 = Golem(pos=(850, 700))
+    #orc1 = Orc(pos=(750, 750))
+    #orcCap1 = OrcCaptain(pos=(700, 800))
+    #skel1 = Skeleton(pos=(600, 700))
+    #thief1 = Thief(pos=(700, 600))
+    #sold2 = Soldier(pos=(600, 600))
+    #mage1 = Mage(pos=(600, 800))
+    #archmage1 = Archmage(pos=(800,800))
+    #smallSlime1 = SmallSlime(pos=(700, 900))
+    #mSlime1 = MediumSlime(pos=(600, 900))
+    #bSlime1 = BigSlime(pos=(800, 900))
     
     self.objectList.append(archer1)
     self.objectList.append(barby1)
-    self.objectList.append(cleric1)
-    self.objectList.append(druid1)
-    self.objectList.append(elf1)
-    self.objectList.append(faerie1)
-    self.objectList.append(ghost1)
-    self.objectList.append(golem1)
-    self.objectList.append(orc1)
-    self.objectList.append(orcCap1)
-    self.objectList.append(skel1)
-    self.objectList.append(thief1)
-    self.objectList.append(sold2)
+    #self.objectList.append(cleric1)
+    #self.objectList.append(druid1)
+    #self.objectList.append(elf1)
+    #self.objectList.append(faerie1)
+    #self.objectList.append(ghost1)
+    #self.objectList.append(golem1)
+    #self.objectList.append(orc1)
+    #self.objectList.append(orcCap1)
+    #self.objectList.append(skel1)
+    #self.objectList.append(thief1)
+    #self.objectList.append(sold2)
+    #self.objectList.append(mage1)
+    #self.objectList.append(archmage1)
+    #self.objectList.append(smallSlime1)
+    #self.objectList.append(mSlime1)
+    #self.objectList.append(bSlime1)
     
     #TODO: put this someplace reasonable
     sold1.team = 1
@@ -1194,29 +1462,38 @@ class TestWorld(AbstractWorld):
     self.controllerList.append(pc3)
     pc4 = PlayerController(barby1)
     self.controllerList.append(pc4)
-    pc5 = PlayerController(cleric1)
-    self.controllerList.append(pc5)
-    pc6 = PlayerController(druid1)
-    self.controllerList.append(pc6)
-    pc7 = PlayerController(elf1)
-    self.controllerList.append(pc7)
-    pc8 = PlayerController(faerie1)
-    self.controllerList.append(pc8)
-    pc9 = PlayerController(ghost1)
-    self.controllerList.append(pc9)
-    pc10 = PlayerController(golem1)
-    self.controllerList.append(pc10)
-    pc11 = PlayerController(orc1)
-    self.controllerList.append(pc11)
-    pc12 = PlayerController(orcCap1)
-    self.controllerList.append(pc12)
-    pc13 = PlayerController(skel1)
-    self.controllerList.append(pc13)
-    pc14 = PlayerController(thief1)
-    self.controllerList.append(pc14)
-    pc15 = PlayerController(sold2)
-    self.controllerList.append(pc15)
-    
+    #pc5 = PlayerController(cleric1)
+    #self.controllerList.append(pc5)
+    #pc6 = PlayerController(druid1)
+    #self.controllerList.append(pc6)
+    #pc7 = PlayerController(elf1)
+    #self.controllerList.append(pc7)
+    #pc8 = PlayerController(faerie1)
+    #self.controllerList.append(pc8)
+    #pc9 = PlayerController(ghost1)
+    #self.controllerList.append(pc9)
+    #pc10 = PlayerController(golem1)
+    #self.controllerList.append(pc10)
+    #pc11 = PlayerController(orc1)
+    #self.controllerList.append(pc11)
+    #pc12 = PlayerController(orcCap1)
+    #self.controllerList.append(pc12)
+    #pc13 = PlayerController(skel1)
+    #self.controllerList.append(pc13)
+    #pc14 = PlayerController(thief1)
+    #self.controllerList.append(pc14)
+    #pc15 = PlayerController(sold2)
+    #self.controllerList.append(pc15)
+    #pc16 = PlayerController(mage1)
+    #self.controllerList.append(pc16)
+    #pc17 = PlayerController(archmage1)
+    #self.controllerList.append(pc17)
+    #pc18 = PlayerController(smallSlime1)
+    #self.controllerList.append(pc18)
+    #pc19 = PlayerController(mSlime1)
+    #self.controllerList.append(pc19)
+    #pc20 = PlayerController(bSlime1)
+    #self.controllerList.append(pc20)
     
     #Set the first camera to follow the first testWalker
     #Note: the render must be initialized before the world
