@@ -429,14 +429,14 @@ class AbstractObject(object):
           y = self.orientation[1]*sinCos - self.orientation[0]*sinCos
       
           #Smooths out all rounding errors
-          if x > 0:
-            x = 1
-          elif x < 0:
-            x = -1
-          if y > 0:
-            y = 1
-          elif y < 0:
-            y = -1
+        if x > 0:
+          x = 1
+        elif x < 0:
+          x = -1
+        if y > 0:
+          y = 1
+        elif y < 0:
+          y = -1
       
         self.orientation = Vector(x,y)
       
