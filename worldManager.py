@@ -620,17 +620,7 @@ class AnimateUnit(Animation):
     #sort all frames into a list
     self.allFramesList = self.sortFrames()
     
-    ###################################################Revise##################################
-    #used when sorting frames into animations
-    self.animationReference = {'south' : 0,
-                               'north' : 1,
-                               'east' : 2,
-                               'west' : 3,
-                               'southwest' : 12,
-                               'northeast' : 13,
-                               'southeast' : 14,
-                               'northwest' : 15}
-    
+    ###################################################Revise##################################   
     self.north = self.createAnimation('north')
     self.east = self.createAnimation('east')
     self.south = self.createAnimation('south')
@@ -652,6 +642,11 @@ class AnimateUnit(Animation):
                      'northwest' : self.northwest}  
     
     self.currentAnimation = self.animationDict[directionString]
+    
+    #load attack animations #if this works possibly load direction animations like this
+    self.directions = ['north', 'east', 'south', 'west', 'northeast', 'northwest', 'southeast', 'southwest']
+    self.meleeAttacks = self.loadMeleeAttacks()
+    self.rangedAttacks = self.loadRangedAttacks()
     
     Animation.__init__(self, self.size, self.currentAnimation, time, True)
     
@@ -687,8 +682,17 @@ class AnimateUnit(Animation):
   def createAnimation(self, animationString):
     """breakdown frame list into animations"""
     #only works for walking now
+    #used when sorting frames into animations
+    animationReference = {'south' : 0,
+                               'north' : 1,
+                               'east' : 2,
+                               'west' : 3,
+                               'southwest' : 12,
+                               'northeast' : 13,
+                               'southeast' : 14,
+                               'northwest' : 15}
     
-    x = self.animationReference[animationString]
+    x = animationReference[animationString]
     
     animation = []
     animation.append(self.allFramesList[x])
@@ -739,41 +743,51 @@ class AnimateUnit(Animation):
           color.hsva = (hue, sat, value, alpha)
           self.spriteSheet.set_at((x, y), (color))
 
+  def loadMeleeAttacks(self):
+    """Load all melee attacks into dictionary"""
+    meleeAttacks = {}
+    for x in self.directions:
+      attackAnimation = []
+      direction = self.animationDict[x]
+      attackAnimation.append(direction[1])
+      attackAnimation.append(direction[0])
+      meleeAttacks[x] = attackAnimation
+    return meleeAttacks  
+  
+  def loadRangedAttacks(self):
+    """Load all melee attacks into dictionary"""
+    rangedAttacks = self.loadMeleeAttacks()
+    return rangedAttacks
+
   def meleeAttack(self, directionString):
     """Set the animation to the melee attack animation for the direction"""
-    attackAnimation = []
-    direction = self.animationDict[directionString]
-    attackAnimation.append(direction[1])
-    attackAnimation.append(direction[0])
+    if self.frameList != self.meleeAttacks[directionString]:
+      self.currentFrameIndex = 0
+      self.frameList = self.meleeAttacks[directionString]
     
-    self.frameList = attackAnimation
+    #animation = Animation(self, self.size, attackAnimation, attacktime/2, loop=False)
+    #return animation
     
   def rangedAttack(self, directionString):
     """Set the animation to ranged attack, which is typically the melee animation"""
-    self.meleeAttack(directionString)
+    if self.frameList != self.rangedAttacks[directionString]:
+      print "RABBLE RABBLE"
+      self.currentFrameIndex = 0
+      self.frameList = self.rangedAttacks[directionString]
+      if self.frameList[0] == self.rangedAttacks[directionString][0]:
+        print "this shouldnt happen"
 
 class AnimateMage(AnimateUnit):
   """Animation class for all mages"""
   
   def __init__(self, name, directionString, hue = 180, time = 0.2):
-    #copied the code for animateUnit but changed animation reference
-    #load spriteSheet
-    self.spriteSheet = glad.resource.get(name)
-    self.mask = glad.resource.get(name+'_mask')
-    #set color
-    self.hue = hue
-    self.colorize()
+    AnimateUnit.__init__(self, name, directionString, hue, time)
     
-    #get size of each sprite
-    self.spriteWidth = self.getSpriteWidth()
-    self.spriteHeight = self.spriteSheet.get_height() - 1
-    self.size = (self.spriteWidth, self.spriteHeight)
-    
-    #sort all frames into a list
-    self.allFramesList = self.sortFrames()
-    
+  def createAnimation(self, animationString):
+    """breakdown frame list into animations"""
+    #only works for walking now
     #used when sorting frames into animations
-    self.animationReference = {'south' : 0,
+    animationReference = {'south' : 0,
                                'north' : 1,
                                'east' : 2,
                                'west' : 3,
@@ -782,36 +796,21 @@ class AnimateMage(AnimateUnit):
                                'southeast' : 22,
                                'northwest' : 23}
     
-    self.north = self.createAnimation('north')
-    self.east = self.createAnimation('east')
-    self.south = self.createAnimation('south')
-    self.west = self.createAnimation('west')
+    x = animationReference[animationString]
     
-    self.northeast = self.createAnimation('northeast')
-    self.southeast = self.createAnimation('southeast')
-    self.southwest = self.createAnimation('southwest')
-    self.northwest = self.createAnimation('northwest')
+    animation = []
+    animation.append(self.allFramesList[x])
+    animation.append(self.allFramesList[x+4])
+    animation.append(self.allFramesList[x])
+    animation.append(self.allFramesList[x+8])
     
-    #used to determine animation based on direction string
-    self.animationDict = {'north' : self.north,
-                     'east' : self.east,
-                     'south' : self.south,
-                     'west' : self.west,
-                     'northeast' : self.northeast,
-                     'southeast' : self.southeast,
-                     'southwest' : self.southwest,
-                     'northwest' : self.northwest}  
+    return animation
+          
+  def loadRangedAttacks(self):
+    """Load all ranged attacks into dictionary"""
     
-    self.currentAnimation = self.animationDict[directionString]
+    rangedAttacks = {}
     
-    Animation.__init__(self, self.size, self.currentAnimation, time, True)
-    
-  def rangedAttack(self, directionString):
-    """Set animation to attack for mage"""
-    attackAnimation = []
-    direction = self.animationDict[directionString]
-    
-    #diction of which frames from allFramesList are attack
     attackDict = {'south' : 16,
                   'north' : 17,
                   'east' : 18,
@@ -821,57 +820,22 @@ class AnimateMage(AnimateUnit):
                   'southeast' : 34,
                   'northwest' : 35}
     
-    attackAnimation.append(self.allFramesList[attackDict[directionString]])
-    attackAnimation.append(direction[0])
-    
-    self.frameList = attackAnimation 
+    for x in self.directions:
+      attackAnimation = []
+      direction = self.animationDict[x]
+      attackAnimation.append(self.allFramesList[attackDict[x]]) #add the frame from attackDict
+      attackAnimation.append(direction[0])
+      rangedAttacks[x] = attackAnimation
+    return rangedAttacks
         
 class AnimateSmallSlime(AnimateUnit):
   
   """Animation class for only small slimes"""
   
-  def __init__(self, name, hue = 180, time = 0.2):
-    #copied the code for animateUnit but changed animation reference
-    #load spriteSheet
-    self.spriteSheet = glad.resource.get(name)
-    self.mask = glad.resource.get(name+'_mask')
-    #set color
-    self.hue = hue
-    self.colorize()
+  def __init__(self, name, directionString = 'north', hue = 180, time = 0.2):
+    AnimateUnit.__init__(self, name, directionString, hue, time)
     
-    #get size of each sprite
-    self.spriteWidth = self.getSpriteWidth()
-    self.spriteHeight = self.spriteSheet.get_height() - 1
-    self.size = (self.spriteWidth, self.spriteHeight)
-    
-    #sort all frames into a list
-    self.allFramesList = self.sortFrames()
-    
-    self.north = self.createAnimation()
-    self.east = self.north
-    self.south = self.north
-    self.west = self.north
-    
-    self.northeast = self.north
-    self.southeast = self.north
-    self.southwest = self.north
-    self.northwest = self.north
-    
-    #used to determine animation based on direction string
-    self.animationDict = {'north' : self.north,
-                     'east' : self.east,
-                     'south' : self.south,
-                     'west' : self.west,
-                     'northeast' : self.northeast,
-                     'southeast' : self.southeast,
-                     'southwest' : self.southwest,
-                     'northwest' : self.northwest}  
-    
-    self.currentAnimation = self.north #doesnt matter they are all the same
-    
-    Animation.__init__(self, self.size, self.currentAnimation, time, True)
-    
-  def createAnimation(self):
+  def createAnimation(self, directionString='north'):
     animation = []
     for x in range(8):
       animation.append(self.allFramesList[x])
@@ -884,11 +848,11 @@ class AnimateSmallSlime(AnimateUnit):
 class AnimateMediumSlime(AnimateSmallSlime):
   """Animation class for only medium slimes"""
   
-  def __init__(self, name, hue = 180, time = 0.2):
+  def __init__(self, name, directionString='north', hue = 180, time = 0.2):
     
-    AnimateSmallSlime.__init__(self, name, hue, time)
+    AnimateSmallSlime.__init__(self, name,directionString, hue, time)
     
-  def createAnimation(self):
+  def createAnimation(self, directionString='north'):
     animation = []
     for x in range(12):
       animation.append(self.allFramesList[x])
@@ -903,11 +867,11 @@ class AnimateBigSlime(AnimateSmallSlime):
   #TODO: ill add splitting animations when i add special animations
   #also i only use the first 3 frames for moving
   
-  def __init__(self, name, hue = 180, time = 0.2):
+  def __init__(self, name, directionString='north', hue = 180, time = 0.2):
     
-    AnimateSmallSlime.__init__(self, name, hue, time)
+    AnimateSmallSlime.__init__(self, name, directionString, hue, time)
     
-  def createAnimation(self):
+  def createAnimation(self, directionString='north'):
     animation = []
     for x in range(3):
       animation.append(self.allFramesList[x])
@@ -994,23 +958,20 @@ class BasicUnit(AbstractObject):
     self.turnTime = 0.08
     
     #Attacking
-    self.meleeAttacking = False #is sprite attacking at the moment
-    self.rangedAttacking = False
+    self.attacking = False
     
   def attack(self):
     #self.animation.rangedAttack(self.orientationToString())
     #NEED TO SET ATTACK ANIMATION WHEN ATTACKING
     #ALSO SYNC IT WITH THE ATTACKS (during attack - frame 1, between attacks - frame 2)
-    self.rangedAttack()
+    #self.rangedAttack()
+    self.attacking = True
     pass
     
   def meleeAttack(self, target):
-    self.meleeAttacking = True
-    #self.meleeAttacking = False When attack is finished
     pass
   
   def rangedAttack(self):
-    self.rangedAttacking = True
     #spawn the ranged attack just outside of the rect
     
     #gap = space between center of player and center of projectile
@@ -1058,7 +1019,15 @@ class BasicUnit(AbstractObject):
     
     self.directionString = self.orientationToString()
     self.animation.setAnimation(self.directionString)
-    self.animation.meleeAttack(self.directionString)
+    
+    if self.attacking:
+      #check if melee or ranged
+      #use ranged since melee isnt really set up
+      self.animation.rangedAttack(self.directionString)
+      self.rangedAttack()
+      if not self.alwaysMove:
+        if self.animation:
+          self.animation.update(time)
     
     #Update the abstract object/draw the scene
     #AbstractObject.update(self, time)
@@ -1067,28 +1036,18 @@ class BasicUnit(AbstractObject):
     if self.turning:
       self.turnTimer += time
       
-    #attacking COULD CLEANUP ALOT
-    if self.meleeAttacking:
-      pass
-    #  self.animation.meleeAttack(self.directionString)
-      #if not self.alwaysMove: #update animation if its not always updated
-    #  if self.animation:
-    #    self.animation.update(time)
-    elif self.rangedAttacking:
-      pass
-      #self.animation.rangedAttack(self.directionString) #WHY DOES THIS CAUSE AN ERROR?????????/
-      #if not self.alwaysMove: #update animation if its not always updated
-    #  if self.animation:
-    #    self.animation.update(time)
         
     #animate only if moving
-    if self.alwaysMove == False:
+    if not self.alwaysMove:
       if self.vel[0] != 0 or self.vel[1] != 0:
         if self.animation:
           self.animation.update(time)
     else:
       if self.animation:
           self.animation.update(time)
+    
+    #Turn of attacking unless its called in the next loop      
+    self.attacking = False
 
 class BasicProjectile(AbstractObject):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
@@ -1128,7 +1087,7 @@ class KnifeThrower(object):
     
     if self.nextAttackTimer != 0.0 or self.knivesAvailable == 0:
       #print 'cooldown: ', self.nextAttackTimer, self.knivesAvailable
-      return#do nothing
+      return #do nothing
     
     self.knivesAvailable -= 1
     self.nextAttackTimer += self.attackCooldown
@@ -1405,7 +1364,7 @@ class TestWorld(AbstractWorld):
     
     #add one of each unit for testing
     archer1 = Archer(pos=(700, 650))
-    barby1 = Barbarian(pos=(650, 650))
+    #barby1 = Barbarian(pos=(650, 650))
     #cleric1 = Cleric(pos=(650, 700))
     #druid1 = Druid(pos=(650, 750))
     #elf1 = Elf(pos=(700, 750))
@@ -1417,14 +1376,14 @@ class TestWorld(AbstractWorld):
     #skel1 = Skeleton(pos=(600, 700))
     #thief1 = Thief(pos=(700, 600))
     #sold2 = Soldier(pos=(600, 600))
-    #mage1 = Mage(pos=(600, 800))
+    mage1 = Mage(pos=(600, 800))
     #archmage1 = Archmage(pos=(800,800))
-    #smallSlime1 = SmallSlime(pos=(700, 900))
+    smallSlime1 = SmallSlime(pos=(700, 900))
     #mSlime1 = MediumSlime(pos=(600, 900))
     #bSlime1 = BigSlime(pos=(800, 900))
     
     self.objectList.append(archer1)
-    self.objectList.append(barby1)
+    #self.objectList.append(barby1)
     #self.objectList.append(cleric1)
     #self.objectList.append(druid1)
     #self.objectList.append(elf1)
@@ -1436,9 +1395,9 @@ class TestWorld(AbstractWorld):
     #self.objectList.append(skel1)
     #self.objectList.append(thief1)
     #self.objectList.append(sold2)
-    #self.objectList.append(mage1)
+    self.objectList.append(mage1)
     #self.objectList.append(archmage1)
-    #self.objectList.append(smallSlime1)
+    self.objectList.append(smallSlime1)
     #self.objectList.append(mSlime1)
     #self.objectList.append(bSlime1)
     
@@ -1460,8 +1419,8 @@ class TestWorld(AbstractWorld):
     #setup controls so all units move in sync
     pc3 = PlayerController(archer1)
     self.controllerList.append(pc3)
-    pc4 = PlayerController(barby1)
-    self.controllerList.append(pc4)
+    #pc4 = PlayerController(barby1)
+    #self.controllerList.append(pc4)
     #pc5 = PlayerController(cleric1)
     #self.controllerList.append(pc5)
     #pc6 = PlayerController(druid1)
@@ -1484,12 +1443,12 @@ class TestWorld(AbstractWorld):
     #self.controllerList.append(pc14)
     #pc15 = PlayerController(sold2)
     #self.controllerList.append(pc15)
-    #pc16 = PlayerController(mage1)
-    #self.controllerList.append(pc16)
+    pc16 = PlayerController(mage1)
+    self.controllerList.append(pc16)
     #pc17 = PlayerController(archmage1)
     #self.controllerList.append(pc17)
-    #pc18 = PlayerController(smallSlime1)
-    #self.controllerList.append(pc18)
+    pc18 = PlayerController(smallSlime1)
+    self.controllerList.append(pc18)
     #pc19 = PlayerController(mSlime1)
     #self.controllerList.append(pc19)
     #pc20 = PlayerController(bSlime1)
