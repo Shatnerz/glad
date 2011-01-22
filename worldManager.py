@@ -323,6 +323,32 @@ class AbstractObject(object):
     self.turnTime = 0.05
     self.turnTimer = 0
     
+  def orientationToString(self):
+    #converts the orientation to a string
+    #makes it easier for animation
+    #if self.orientation == None: #FIX FOR IF THERE IS NO ORIENTATION
+     # return 'north'
+    
+    string = ''
+    if self.orientation[0] == 0 and self.orientation[1] < 0:
+      string = 'north'
+    elif self.orientation[0] == 0 and self.orientation[1] > 0:
+      string = 'south'
+    elif self.orientation[0] > 0 and self.orientation[1] == 0:
+      string = 'east'
+    elif self.orientation[0] < 0 and self.orientation[1] == 0:
+      string = 'west'
+    elif self.orientation[0] < 0 and self.orientation[1] < 0:
+      string = 'northwest'
+    elif self.orientation[0] > 0 and self.orientation[1] > 0:
+      string = 'southeast'
+    elif self.orientation[0] < 0 and self.orientation[1] > 0:
+      string = 'southwest'
+    elif self.orientation[0] > 0 and self.orientation[1] < 0:
+      string = 'northeast'
+    
+    return string  
+  
   def draw(self, screen, offset):
     
     #draw the animation, centered at the objects position
@@ -599,6 +625,63 @@ class TestAnimation(Animation):
     
   def setAnimation(selfself, string):
     pass
+  
+class AnimateRangedAttack(Animation):
+  """Animation class for projectiles""" #mostly copied from animateUnit
+  
+  def __init__(self, name, directionString, frames = 8, time = 0.2, loop=True):
+    
+    #load spriteSheet
+    self.spriteSheet = glad.resource.get(name)
+    
+    #get the size of each frame
+    self.spriteWidth = self.spriteSheet.get_width()/frames
+    self.spriteHeight = self.spriteSheet.get_height() - 1
+    self.size = (self.spriteWidth, self.spriteHeight)
+    
+    #sort all frames into a list
+    self.allFramesList = self.sortFrames()
+    
+    #directions
+    #self.north = self.allFramesList[1]
+    #self.east = self.allFramesList[2]
+    #self.south = self.allFramesList[0]
+    #self.west = self.allFramesList[3]
+    
+    #self.northeast = self.allFramesList[5]
+    #self.southeast = self.allFramesList[6]
+    #self.southwest = self.allFramesList[4]
+    #self.northwest = self.allFramesList[7]
+    
+    self.animationDict = {'north' : [self.allFramesList[1]],
+                     'east' : [self.allFramesList[2]],
+                     'south' : [self.allFramesList[0]],
+                     'west' : [self.allFramesList[3]],
+                     'northeast' : [self.allFramesList[5]],
+                     'southeast' : [self.allFramesList[6]],
+                     'southwest' : [self.allFramesList[4]],
+                     'northwest' : [self.allFramesList[7]]}  
+    
+    self.currentAnimation = self.animationDict[directionString]
+    
+    Animation.__init__(self, self.size, self.currentAnimation, time, loop)
+    
+  def sortFrames(self):
+    """sort frames into one list"""
+      
+    spriteWidth = self.spriteWidth     
+    spriteHeight = self.spriteHeight
+      
+    #Sort frames
+    frameList = []
+    point = 0
+    sheetWidth = self.spriteSheet.get_width()
+    numSprites = sheetWidth/spriteWidth
+    for sprite in xrange(numSprites):
+      frame = self.spriteSheet.subsurface((point, 1), (spriteWidth, spriteHeight))
+      point += spriteWidth
+      frameList.append(frame)
+    return frameList
        
 class AnimateUnit(Animation):
   
@@ -1077,9 +1160,64 @@ class BasicProjectile(AbstractObject):
     
     self.speed = 450.0
     
-    #NOTE: mut use normalized direction vector!
+    #NOTE: must use normalized direction vector!
     self.vel = moveDir.getNormalized()*self.speed
   
+class Meteor(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+    self.orientation = Vector(moveDir)
+    self.directionString = self.orientationToString()
+    self.animation = AnimateRangedAttack('meteor', self.directionString)
+
+class BasicRangedAttack(object):
+  
+  def __init__(self, size=(16,16)):
+    
+    self.nextAttackTimer = 0.0
+    self.attackCooldown = 0.4
+    
+    self.size = size
+    
+  def update(self, time):
+    
+    self.nextAttackTimer -= time
+    
+    if self.nextAttackTimer < 0.0:
+      self.nextAttackTimer = 0.0 
+      
+  def attack(self, pos, gap, orientation,team):
+    
+    if self.nextAttackTimer != 0.0:
+      return False
+    
+    self.nextAttackTimer += self.attackCooldown
+    
+    #create a knife just outside the spawn location
+    
+    projectileShape = Rect.createAtOrigin(self.size[0], self.size[1])
+        
+    #TODO: how to handle diagonal movement and firing?
+    # spawn outside rect, or inside?
+    
+    projectilePos = pos + orientation.getNormalized()*gap
+    
+    proj = Meteor(projectilePos,projectileShape,team,orientation) 
+    
+    glad.world.objectList.append(proj)
+    
+    return True
   
 class KnifeThrower(object):
   """Spawns knives"""
@@ -1153,7 +1291,8 @@ class FireElem(BasicUnit):
         
     BasicUnit.__init__(self, pos, shape, **kwargs)
         
-    self.rangedWeapon = KnifeThrower()
+    #self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack()
         
     self.animation = AnimateUnit('firelem', self.directionString)
     self.alwaysMove = True

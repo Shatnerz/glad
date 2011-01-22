@@ -72,6 +72,22 @@ def registerGladResources():
   registerGladTiles()
   
   registerGladCharacters()
+  
+  registerGladProjectiles()
+  
+def registerGladProjectiles():
+  """Load all projectiles into the game"""
+  
+  titleFolder = 'resources/images'
+  
+  projectileList = ['arrow', 'bone1', 'boulder1', 'farrow', 'fire', 'hammer', 'knife', 'lightnin', 'meteor']
+  
+  for name in projectileList:
+    fullname = os.path.join(titleFolder, name+'.tga')
+    glad.resource.register(name, fullname)
+    transColor = glad.resource.resourceDict[name].data.get_at((0,1))
+    glad.resource.resourceDict[name].data.set_colorkey(transColor)
+    
 
 def registerGladCharacters():
   """Load all the characters into the game"""
