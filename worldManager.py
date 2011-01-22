@@ -703,8 +703,11 @@ class AnimateUnit(Animation):
     return animation
   
   def setAnimation(self, animationString):
-    if self.frameList != self.animationDict[animationString]:
+    #if self.frameList != self.animationDict[animationString]:
+    #  self.frameList = self.animationDict[animationString]
+    if self.frameList[0].get_offset != self.animationDict[animationString][0].get_offset:
       self.frameList = self.animationDict[animationString]
+      self.currentFrameIndex = 0
   
   def colorize(self):
     """Colorize spriteSheet using self.hue and self.mask"""
@@ -770,12 +773,12 @@ class AnimateUnit(Animation):
     
   def rangedAttack(self, directionString):
     """Set the animation to ranged attack, which is typically the melee animation"""
-    if self.frameList != self.rangedAttacks[directionString]:
-      print "RABBLE RABBLE"
+    #if self.frameList != self.rangedAttacks[directionString]:
+    if self.frameList[0].get_offset() != self.rangedAttacks[directionString][0].get_offset(): #compare offset
+      #print self.rangedAttacks[directionString][0].get_offset(), "*******", self.frameList[0].get_offset()
       self.currentFrameIndex = 0
       self.frameList = self.rangedAttacks[directionString]
-      if self.frameList[0] == self.rangedAttacks[directionString][0]:
-        print "this shouldnt happen"
+        
 
 class AnimateMage(AnimateUnit):
   """Animation class for all mages"""
@@ -959,6 +962,10 @@ class BasicUnit(AbstractObject):
     
     #Attacking
     self.attacking = False
+    #attack animation
+    self.shooting = False #think of better name
+    self.attackTime = 0.1 #time attack frame is up
+    self.attackTimer = 0
     
   def attack(self):
     #self.animation.rangedAttack(self.orientationToString())
@@ -978,10 +985,14 @@ class BasicUnit(AbstractObject):
     #TODO: abstract/put in the correct place
     gap = 16
     
-    self.rangedWeapon.attack(self.getPos(), 
+    if self.rangedWeapon.attack(self.getPos(), 
                              gap, 
                              self.orientation,
-                             self.team)
+                             self.team):
+      return True
+      #self.animation.rangedAttack(self.directionString)
+    else:
+      return False
   
   def orientationToString(self):
     #converts the orientation to a string
@@ -1006,45 +1017,51 @@ class BasicUnit(AbstractObject):
     
     return string
   
-  def update(self, time):
+  def update(self, time): 
     
     if self.rangedWeapon:
       self.rangedWeapon.update(time)
     
-    #update the orientation / which way the unit is facing
-    #if not self.moveDir.isNullVector():
-     # self.orientation = self.moveDir.copy()
-    #no longer needed
-    #updates on move request and turn   
-    
     self.directionString = self.orientationToString()
-    self.animation.setAnimation(self.directionString)
+    if not self.attacking and not self.shooting:
+      self.animation.setAnimation(self.directionString)
+      
+    if self.shooting:
+      self.attackTimer += time
+      if self.attackTimer >= self.attackTime:
+        self.attackTimer = 0
+        self.animation.setAnimation(self.directionString)
+        self.shooting = False
     
     if self.attacking:
       #check if melee or ranged
       #use ranged since melee isnt really set up
-      self.animation.rangedAttack(self.directionString)
-      self.rangedAttack()
-      if not self.alwaysMove:
-        if self.animation:
-          self.animation.update(time)
-    
-    #Update the abstract object/draw the scene
-    #AbstractObject.update(self, time)
+      if self.rangedAttack():
+        self.shooting = True
+        self.attackTimer = 0
+        if not self.alwaysMove: #TODO fix attack animation for always move
+          self.animation.rangedAttack(self.directionString)
     
     #update turnTime
     if self.turning:
+      self.animation.setAnimation(self.directionString)
       self.turnTimer += time
       
         
-    #animate only if moving
+    #animate only if moving and not shooting
     if not self.alwaysMove:
       if self.vel[0] != 0 or self.vel[1] != 0:
-        if self.animation:
-          self.animation.update(time)
+        if self.attacking and not self.shooting:
+          self.animation.setAnimation(self.directionString)
+          if self.animation:
+            self.animation.update(time)
+        if not self.attacking and not self.shooting:
+          self.animation.setAnimation(self.directionString)
+          if self.animation:
+            self.animation.update(time)
     else:
       if self.animation:
-          self.animation.update(time)
+        self.animation.update(time)
     
     #Turn of attacking unless its called in the next loop      
     self.attacking = False
@@ -1074,7 +1091,7 @@ class KnifeThrower(object):
     self.knivesAvailable = 99
     
     self.nextAttackTimer = 0.0
-    self.attackCooldown = 0.9
+    self.attackCooldown = 0.4
     
   def update(self, time):
     
@@ -1087,7 +1104,7 @@ class KnifeThrower(object):
     
     if self.nextAttackTimer != 0.0 or self.knivesAvailable == 0:
       #print 'cooldown: ', self.nextAttackTimer, self.knivesAvailable
-      return #do nothing
+      return False
     
     self.knivesAvailable -= 1
     self.nextAttackTimer += self.attackCooldown
@@ -1109,6 +1126,8 @@ class KnifeThrower(object):
     
     
     glad.world.objectList.append(proj)
+    
+    return True
 #   TODO: spawn knife here
     
     
@@ -1359,7 +1378,7 @@ class TestWorld(AbstractWorld):
     self.objectList.append(sold1)
     
     #add 1 firelem for testing
-    firelem1 = FireElem(pos = (700,700), team = 2)
+    firelem1 = FireElem(pos = (700,700), team = 1)
     self.objectList.append(firelem1)
     
     #add one of each unit for testing

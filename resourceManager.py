@@ -25,18 +25,21 @@ class AbstractResource(object):
 class ImageResource(AbstractResource):
   """Handles images and converts them to pygame surfaces"""
   
-  def load(self):
+  def load(self, tile = False, **kwargs):
     
     kwargs = self.kwargs
     filename = self.filename
-        
-    #w, h = kwargs['size']
+    
+    if tile:    
+      w, h = kwargs['size']
     
     origSurface = pygame.image.load(filename).convert()
     
     #we have to get the subsurface because the first row is black pixels
-    #self.data = origSurface.subsurface(offX,offY,w,h)
-    self.data = origSurface
+    if tile:
+      self.data = origSurface.subsurface(0,1,w,h)
+    else:
+      self.data = origSurface
         
     
 class ResourceManager(object):
@@ -47,13 +50,13 @@ class ResourceManager(object):
   
     self.resourceDict = {}
   
-  def register(self, name, filename, **kwargs):
+  def register(self, name, filename,tile = False, **kwargs):
         
     #TODO assumes it's an image right now
     r = ImageResource(filename,**kwargs)    
     self.resourceDict[name] = r
     #TODO: for now just load immediately, this may change in the future
-    r.load()
+    r.load(tile, **kwargs)
   
   def get(self, name):
     return self.resourceDict[name].get()
@@ -101,11 +104,12 @@ def registerGladCharacters():
   #loads spritesheets and sets the top left corner as transparency
   for name, filename in spriteDict.iteritems():
     spriteFullname = os.path.join(titleFolder+'/spritesheets', filename+'.png')
-    glad.resource.register(name, spriteFullname)
+    glad.resource.register(name, spriteFullname)  
     transColor = glad.resource.resourceDict[name].data.get_at((0,1))
     glad.resource.resourceDict[name].data.set_colorkey(transColor)
     maskFullname = os.path.join(titleFolder+'/masks', filename+'_mask.png')
     glad.resource.register(name+'_mask', maskFullname)
+    
     #try:
     #  image = pygame.image.load(fullname).convert()
     #  transColor = image.get_at((0,1))
@@ -264,5 +268,5 @@ def registerGladTiles():
   #register all times from the game
   for name, filename in tileDict.iteritems():    
     glad.resource.register(name, 
-                           os.path.join(tileFolder,filename), 
+                           os.path.join(tileFolder,filename), tile=True, 
                            size=tileSize, offset=offset)

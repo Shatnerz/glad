@@ -429,13 +429,13 @@ class Renderer(object):
         
         tile = glad.resource.get(tileName)    
         
-        #screen.blit(tile, (left,top,
-        #                  Renderer.tileSize[0],
-        #                  Renderer.tileSize[1]))
+        screen.blit(tile, (left,top,
+                          Renderer.tileSize[0],
+                          Renderer.tileSize[1]))
         #Does not blit top line of black pixels
-        screen.blit(tile, (left,top),((0,1),
-                                      (Renderer.tileSize[0],
-                                       Renderer.tileSize[1])))
+        #screen.blit(tile, (left,top),((0,1),
+        #                              (Renderer.tileSize[0],
+        #                               Renderer.tileSize[1])))
         
 
 
