@@ -155,7 +155,6 @@ def registerGladTiles():
   tileFolder = 'resources/images/' 
   
   tileSize = (32,32)
-  offset = (0,1)
   
   tileDict = {'PIX_BOULDER_1': '16stone1.tga',
               'PIX_BOULDER_2': '16stone2.tga',
@@ -296,4 +295,4 @@ def registerGladTiles():
   for name, filename in tileDict.iteritems():    
     glad.resource.register(name, 
                            os.path.join(tileFolder,filename), tile=True, 
-                           size=tileSize, offset=offset)
+                           size=tileSize)
