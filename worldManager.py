@@ -642,17 +642,6 @@ class AnimateRangedAttack(Animation):
     #sort all frames into a list
     self.allFramesList = self.sortFrames()
     
-    #directions
-    #self.north = self.allFramesList[1]
-    #self.east = self.allFramesList[2]
-    #self.south = self.allFramesList[0]
-    #self.west = self.allFramesList[3]
-    
-    #self.northeast = self.allFramesList[5]
-    #self.southeast = self.allFramesList[6]
-    #self.southwest = self.allFramesList[4]
-    #self.northwest = self.allFramesList[7]
-    
     self.animationDict = {'north' : [self.allFramesList[1]],
                      'east' : [self.allFramesList[2]],
                      'south' : [self.allFramesList[0]],
@@ -683,6 +672,106 @@ class AnimateRangedAttack(Animation):
       frameList.append(frame)
     return frameList
        
+class AnimateSpinningAttack(AnimateRangedAttack):
+  """animation class for rotating/animating projectiles"""
+  
+  def __init__(self, name, directionString, frames = 8, time = 0.1, loop=True):
+    
+    #load spriteSheet
+    self.spriteSheet = glad.resource.get(name)
+    
+    #get the size of each frame
+    self.spriteWidth = self.spriteSheet.get_width()/frames
+    self.spriteHeight = self.spriteSheet.get_height() - 1
+    self.size = (self.spriteWidth, self.spriteHeight)
+    
+    self.allFramesList = self.sortFrames()
+    
+    self.animationDict = {'north' : self.allFramesList,
+                     'east' : self.allFramesList,
+                     'south' : self.allFramesList,
+                     'west' : self.allFramesList,
+                     'northeast' : self.allFramesList,
+                     'southeast' : self.allFramesList,
+                     'southwest' : self.allFramesList,
+                     'northwest' : self.allFramesList}
+    self.currentAnimation = self.animationDict[directionString]
+    
+    Animation.__init__(self, self.size, self.currentAnimation, time, loop)
+
+class AnimateSlimeBall(AnimateRangedAttack):
+  """Animation class for slime ball projectiles"""
+  def __init__(self, name, directionString, hue, frames = 8, time = 0.1, loop=True):
+    #load spriteSheet
+    self.spriteSheet = glad.resource.get(name)
+    self.mask = self.spriteSheet
+    self.hue = hue
+    #self.colorize()   NEED TO DO THIS BEFOREHAND, IT SLOWS THE GAME NOTICEABLY AT THE MOMENT
+    
+    #get the size of each frame
+    self.spriteWidth = self.spriteSheet.get_width()/frames
+    self.spriteHeight = self.spriteSheet.get_height() - 1
+    self.size = (self.spriteWidth, self.spriteHeight)
+    
+    self.allFramesList = self.sortFrames()
+    
+    self.attack = []
+    for x in range(7):
+      self.attack.append(self.allFramesList[x])
+    x = 6
+    while x > 1:
+      self.attack.append(self.allFramesList[x])
+      x -= 1
+    
+    self.animationDict = {'north' : self.attack,
+                     'east' : self.attack,
+                     'south' : self.attack,
+                     'west' : self.attack,
+                     'northeast' : self.attack,
+                     'southeast' : self.attack,
+                     'southwest' : self.attack,
+                     'northwest' : self.attack}
+    self.currentAnimation = self.animationDict[directionString]
+    
+    Animation.__init__(self, self.size, self.currentAnimation, time, loop)
+    
+  def colorize(self):
+    """Colorize the slimeball to match slime, slightly modified from AnimateUnit """
+    transColor = self.spriteSheet.get_at((0,1))
+    for x in range(self.mask.get_width()):
+      for y in range(self.mask.get_height()):
+        if self.mask.get_at((x, y)) != transColor: #find white pixels in mask
+          #Get rgb
+          r, g, b, alpha = self.spriteSheet.get_at((x, y))
+          #to grayscale
+          avg = (r + g + b)/3
+          r, g, b = avg, avg, avg
+          color = pygame.Color(r, g, b)
+          #get hsv
+          hue, sat, value, alpha = color.hsva
+          #set hue
+          hue = self.hue
+          #set sat
+          satPeak = -0.0068434106*value*value+1.6463624986*value+2.007500384
+          if satPeak > 100:
+              satPeak = 100
+          if value <= 50:
+              sat = satPeak
+          elif value > 50:
+              sat = satPeak-(satPeak/50.0*(value-50))
+          #set value
+          spriteSat = 50 #the above setting are for sat=50, i dont remember all of this
+          num = spriteSat/50.0
+          if value <= 50:
+            valAdd = value/2*num
+          elif value > 50:
+            valAdd = (value-2*num*(value-50))/2
+          value += valAdd
+          #set color
+          color.hsva = (hue, sat, value, alpha)
+          self.spriteSheet.set_at((x, y), (color))
+
+
 class AnimateUnit(Animation):
   
   """Animation class for all generic units"""
@@ -1016,7 +1105,7 @@ class TestWalker(AbstractObject):
     
 class BasicUnit(AbstractObject):
   
-  def __init__(self, pos, shape, **kwargs):
+  def __init__(self, pos, shape, hue=180, **kwargs):
     AbstractObject.__init__(self, pos, shape, **kwargs)
     
     self.collisionType = 'UNIT'
@@ -1050,6 +1139,8 @@ class BasicUnit(AbstractObject):
     self.attackTime = 0.1 #time attack frame is up
     self.attackTimer = 0
     
+    self.hue = hue
+    
   def attack(self):
     #self.animation.rangedAttack(self.orientationToString())
     #NEED TO SET ATTACK ANIMATION WHEN ATTACKING
@@ -1076,29 +1167,6 @@ class BasicUnit(AbstractObject):
       #self.animation.rangedAttack(self.directionString)
     else:
       return False
-  
-  def orientationToString(self):
-    #converts the orientation to a string
-    #makes it easier for animation
-    string = ''
-    if self.orientation[0] == 0 and self.orientation[1] < 0:
-      string = 'north'
-    elif self.orientation[0] == 0 and self.orientation[1] > 0:
-      string = 'south'
-    elif self.orientation[0] > 0 and self.orientation[1] == 0:
-      string = 'east'
-    elif self.orientation[0] < 0 and self.orientation[1] == 0:
-      string = 'west'
-    elif self.orientation[0] < 0 and self.orientation[1] < 0:
-      string = 'northwest'
-    elif self.orientation[0] > 0 and self.orientation[1] > 0:
-      string = 'southeast'
-    elif self.orientation[0] < 0 and self.orientation[1] > 0:
-      string = 'southwest'
-    elif self.orientation[0] > 0 and self.orientation[1] < 0:
-      string = 'northeast'
-    
-    return string
   
   def update(self, time): 
     
@@ -1162,33 +1230,202 @@ class BasicProjectile(AbstractObject):
     
     #NOTE: must use normalized direction vector!
     self.vel = moveDir.getNormalized()*self.speed
+    
+    self.orientation = Vector(moveDir)
+    self.directionString = self.orientationToString()
   
 class Meteor(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
     
     self.collisionType = 'PROJECTILE'
-    
-    
     
     self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
     self.vel = moveDir.getNormalized()*self.speed
     
-    self.orientation = Vector(moveDir)
-    self.directionString = self.orientationToString()
+
     self.animation = AnimateRangedAttack('meteor', self.directionString)
+
+class Bone(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+
+    self.animation = AnimateSpinningAttack('bone1', self.directionString)
+    
+class SlimeBall(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, hue, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 100.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+    self.hue = hue
+
+    self.animation = AnimateSlimeBall('sl_ball', self.directionString, self.hue, frames = 12)
+    
+class Knife(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+
+    self.animation = AnimateSpinningAttack('knife', self.directionString)
+ 
+class Boulder(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+
+    self.animation = AnimateSpinningAttack('boulder1', self.directionString, frames = 1)   
+
+class Rock(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+
+    self.animation = AnimateRangedAttack('rock', self.directionString, frames = 12)    
+
+class Hammer(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+
+    self.animation = AnimateRangedAttack('hammer', self.directionString, frames = 12)
+
+class Sparkle(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+
+    self.animation = AnimateSpinningAttack('sparkle', self.directionString, frames = 12)
+
+class Lightning(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+
+    self.animation = AnimateRangedAttack('lightnin', self.directionString)
+
+class Fireball(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+
+    self.animation = AnimateRangedAttack('fire', self.directionString)
+    
+class Arrow(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+
+    self.animation = AnimateRangedAttack('arrow', self.directionString, frames = 12)
+
+class FireArrow(BasicProjectile):
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    
+    self.collisionType = 'PROJECTILE'
+    
+    self.speed = 450.0
+    
+    #NOTE: must use normalized direction vector!
+    self.vel = moveDir.getNormalized()*self.speed
+    
+
+    self.animation = AnimateRangedAttack('farrow', self.directionString, frames = 16)
+
 
 class BasicRangedAttack(object):
   
-  def __init__(self, size=(16,16)):
+  def __init__(self, type='meteor', size=(16,16)):
     
     self.nextAttackTimer = 0.0
     self.attackCooldown = 0.4
     
     self.size = size
+    
+    self.type = type
     
   def update(self, time):
     
@@ -1213,11 +1450,52 @@ class BasicRangedAttack(object):
     
     projectilePos = pos + orientation.getNormalized()*gap
     
-    proj = Meteor(projectilePos,projectileShape,team,orientation) 
+    dict = {'rock': Rock(projectilePos,projectileShape,team,orientation),
+            'arrow': Arrow(projectilePos,projectileShape,team,orientation),
+            'firearrow': FireArrow(projectilePos,projectileShape,team,orientation),
+            'fireball': Fireball(projectilePos,projectileShape,team,orientation),
+            'hammer': Hammer(projectilePos,projectileShape,team,orientation),
+            'lightning': Lightning(projectilePos,projectileShape,team,orientation),
+            'meteor': Meteor(projectilePos,projectileShape,team,orientation),
+            'bone' : Bone(projectilePos,projectileShape,team,orientation),
+            'knife' : Knife(projectilePos,projectileShape,team,orientation),
+            'sparkle' : Sparkle(projectilePos,projectileShape,team,orientation),
+            'boulder' : Boulder(projectilePos,projectileShape,team,orientation)}
+    proj = dict[self.type]
+    #proj = Rock(projectilePos,projectileShape,team,orientation) 
     
     glad.world.objectList.append(proj)
     
     return True
+  
+class SlimeAttack(BasicRangedAttack):
+  
+  def __init__(self, hue, size=(24, 24), type=None):
+    BasicRangedAttack.__init__(self, type, size=(24,24))
+    self.hue = hue
+    
+  def attack(self, pos, gap, orientation,team):
+    
+    if self.nextAttackTimer != 0.0:
+      return False
+    
+    self.nextAttackTimer += self.attackCooldown
+    
+    #create a knife just outside the spawn location
+    
+    projectileShape = Rect.createAtOrigin(self.size[0], self.size[1])
+        
+    #TODO: how to handle diagonal movement and firing?
+    # spawn outside rect, or inside?
+    
+    projectilePos = pos + orientation.getNormalized()*gap
+    
+    proj = SlimeBall(projectilePos,projectileShape,team,orientation,self.hue)
+    #proj = Rock(projectilePos,projectileShape,team,orientation) 
+    
+    glad.world.objectList.append(proj)
+    
+    return True  
   
 class KnifeThrower(object):
   """Spawns knives"""
@@ -1280,7 +1558,7 @@ class Soldier(BasicUnit):
       
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('knife')
     
     self.animation = AnimateUnit('footman', self.directionString)
     
@@ -1292,9 +1570,9 @@ class FireElem(BasicUnit):
     BasicUnit.__init__(self, pos, shape, **kwargs)
         
     #self.rangedWeapon = KnifeThrower()
-    self.rangedWeapon = BasicRangedAttack()
+    self.rangedWeapon = BasicRangedAttack('meteor')
         
-    self.animation = AnimateUnit('firelem', self.directionString)
+    self.animation = AnimateUnit('firelem', self.directionString, self.hue)
     self.alwaysMove = True
    
 class Archer(BasicUnit):
@@ -1304,7 +1582,7 @@ class Archer(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('arrow')
     
     self.animation = AnimateUnit('archer', self.directionString)
     
@@ -1315,7 +1593,7 @@ class Archmage(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('fireball')
     
     self.animation = AnimateMage('archmage', self.directionString)
 
@@ -1326,7 +1604,7 @@ class Barbarian(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('hammer')
     
     self.animation = AnimateUnit('barby', self.directionString)
     
@@ -1348,7 +1626,7 @@ class Druid(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('lightning')
     
     self.animation = AnimateUnit('druid', self.directionString)
     
@@ -1359,7 +1637,7 @@ class Elf(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('rock')
     
     self.animation = AnimateUnit('elf', self.directionString)
     
@@ -1370,7 +1648,7 @@ class Faerie(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('sparkle')
     
     self.animation = AnimateUnit('faerie', self.directionString)
     self.alwaysMove = True
@@ -1394,7 +1672,7 @@ class Golem(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('boulder')
     
     self.animation = AnimateUnit('golem', self.directionString)
     
@@ -1405,7 +1683,7 @@ class Mage(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('fireball')
     
     self.animation = AnimateMage('mage', self.directionString) 
 
@@ -1427,7 +1705,7 @@ class OrcCaptain(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('knife')
     
     self.animation = AnimateUnit('orc2', self.directionString) 
     
@@ -1438,7 +1716,7 @@ class Skeleton(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('bone')
     
     self.animation = AnimateUnit('skeleton', self.directionString) 
     
@@ -1449,7 +1727,7 @@ class SmallSlime(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = SlimeAttack(self.hue)
     
     self.alwaysMove = True
     
@@ -1462,7 +1740,7 @@ class MediumSlime(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = SlimeAttack(self.hue)
     
     self.alwaysMove = True
     
@@ -1475,7 +1753,7 @@ class BigSlime(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = SlimeAttack(self.hue)
     
     self.alwaysMove = True
     
@@ -1488,7 +1766,7 @@ class Thief(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = BasicRangedAttack('knife')
     
     self.animation = AnimateUnit('thief', self.directionString)     
     
@@ -1522,42 +1800,42 @@ class TestWorld(AbstractWorld):
     
     #add one of each unit for testing
     archer1 = Archer(pos=(700, 650))
-    #barby1 = Barbarian(pos=(650, 650))
-    #cleric1 = Cleric(pos=(650, 700))
-    #druid1 = Druid(pos=(650, 750))
-    #elf1 = Elf(pos=(700, 750))
-    #faerie1 = Faerie(pos=(750, 650))
-    #ghost1 = Ghost(pos=(750, 700))
-    #golem1 = Golem(pos=(850, 700))
-    #orc1 = Orc(pos=(750, 750))
-    #orcCap1 = OrcCaptain(pos=(700, 800))
-    #skel1 = Skeleton(pos=(600, 700))
-    #thief1 = Thief(pos=(700, 600))
-    #sold2 = Soldier(pos=(600, 600))
+    barby1 = Barbarian(pos=(650, 650))
+    cleric1 = Cleric(pos=(650, 700))
+    druid1 = Druid(pos=(650, 750))
+    elf1 = Elf(pos=(700, 750))
+    faerie1 = Faerie(pos=(750, 650))
+    ghost1 = Ghost(pos=(750, 700))
+    golem1 = Golem(pos=(850, 700))
+    orc1 = Orc(pos=(750, 750))
+    orcCap1 = OrcCaptain(pos=(700, 800))
+    skel1 = Skeleton(pos=(600, 700))
+    thief1 = Thief(pos=(700, 600))
+    sold2 = Soldier(pos=(600, 600))
     mage1 = Mage(pos=(600, 800))
-    #archmage1 = Archmage(pos=(800,800))
+    archmage1 = Archmage(pos=(800,800))
     smallSlime1 = SmallSlime(pos=(700, 900))
-    #mSlime1 = MediumSlime(pos=(600, 900))
-    #bSlime1 = BigSlime(pos=(800, 900))
+    mSlime1 = MediumSlime(pos=(600, 900))
+    bSlime1 = BigSlime(pos=(800, 900))
     
     self.objectList.append(archer1)
-    #self.objectList.append(barby1)
-    #self.objectList.append(cleric1)
-    #self.objectList.append(druid1)
-    #self.objectList.append(elf1)
-    #self.objectList.append(faerie1)
-    #self.objectList.append(ghost1)
-    #self.objectList.append(golem1)
-    #self.objectList.append(orc1)
-    #self.objectList.append(orcCap1)
-    #self.objectList.append(skel1)
-    #self.objectList.append(thief1)
-    #self.objectList.append(sold2)
+    self.objectList.append(barby1)
+    self.objectList.append(cleric1)
+    self.objectList.append(druid1)
+    self.objectList.append(elf1)
+    self.objectList.append(faerie1)
+    self.objectList.append(ghost1)
+    self.objectList.append(golem1)
+    self.objectList.append(orc1)
+    self.objectList.append(orcCap1)
+    self.objectList.append(skel1)
+    self.objectList.append(thief1)
+    self.objectList.append(sold2)
     self.objectList.append(mage1)
-    #self.objectList.append(archmage1)
+    self.objectList.append(archmage1)
     self.objectList.append(smallSlime1)
-    #self.objectList.append(mSlime1)
-    #self.objectList.append(bSlime1)
+    self.objectList.append(mSlime1)
+    self.objectList.append(bSlime1)
     
     #TODO: put this someplace reasonable
     sold1.team = 1
@@ -1577,40 +1855,40 @@ class TestWorld(AbstractWorld):
     #setup controls so all units move in sync
     pc3 = PlayerController(archer1)
     self.controllerList.append(pc3)
-    #pc4 = PlayerController(barby1)
-    #self.controllerList.append(pc4)
-    #pc5 = PlayerController(cleric1)
-    #self.controllerList.append(pc5)
-    #pc6 = PlayerController(druid1)
-    #self.controllerList.append(pc6)
-    #pc7 = PlayerController(elf1)
-    #self.controllerList.append(pc7)
-    #pc8 = PlayerController(faerie1)
-    #self.controllerList.append(pc8)
-    #pc9 = PlayerController(ghost1)
-    #self.controllerList.append(pc9)
-    #pc10 = PlayerController(golem1)
-    #self.controllerList.append(pc10)
-    #pc11 = PlayerController(orc1)
-    #self.controllerList.append(pc11)
-    #pc12 = PlayerController(orcCap1)
-    #self.controllerList.append(pc12)
-    #pc13 = PlayerController(skel1)
-    #self.controllerList.append(pc13)
-    #pc14 = PlayerController(thief1)
-    #self.controllerList.append(pc14)
-    #pc15 = PlayerController(sold2)
-    #self.controllerList.append(pc15)
+    pc4 = PlayerController(barby1)
+    self.controllerList.append(pc4)
+    pc5 = PlayerController(cleric1)
+    self.controllerList.append(pc5)
+    pc6 = PlayerController(druid1)
+    self.controllerList.append(pc6)
+    pc7 = PlayerController(elf1)
+    self.controllerList.append(pc7)
+    pc8 = PlayerController(faerie1)
+    self.controllerList.append(pc8)
+    pc9 = PlayerController(ghost1)
+    self.controllerList.append(pc9)
+    pc10 = PlayerController(golem1)
+    self.controllerList.append(pc10)
+    pc11 = PlayerController(orc1)
+    self.controllerList.append(pc11)
+    pc12 = PlayerController(orcCap1)
+    self.controllerList.append(pc12)
+    pc13 = PlayerController(skel1)
+    self.controllerList.append(pc13)
+    pc14 = PlayerController(thief1)
+    self.controllerList.append(pc14)
+    pc15 = PlayerController(sold2)
+    self.controllerList.append(pc15)
     pc16 = PlayerController(mage1)
     self.controllerList.append(pc16)
-    #pc17 = PlayerController(archmage1)
-    #self.controllerList.append(pc17)
+    pc17 = PlayerController(archmage1)
+    self.controllerList.append(pc17)
     pc18 = PlayerController(smallSlime1)
     self.controllerList.append(pc18)
-    #pc19 = PlayerController(mSlime1)
-    #self.controllerList.append(pc19)
-    #pc20 = PlayerController(bSlime1)
-    #self.controllerList.append(pc20)
+    pc19 = PlayerController(mSlime1)
+    self.controllerList.append(pc19)
+    pc20 = PlayerController(bSlime1)
+    self.controllerList.append(pc20)
     
     #Set the first camera to follow the first testWalker
     #Note: the render must be initialized before the world

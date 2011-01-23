@@ -80,7 +80,18 @@ def registerGladProjectiles():
   
   titleFolder = 'resources/images'
   
-  projectileList = ['arrow', 'bone1', 'boulder1', 'farrow', 'fire', 'hammer', 'knife', 'lightnin', 'meteor']
+  projectileList = ['arrow',
+                    'bone1',
+                    'boulder1',
+                    'farrow',
+                    'fire',
+                    'hammer',
+                    'knife',
+                    'lightnin',
+                    'meteor',
+                    'rock',
+                    'sparkle',
+                    'sl_ball']
   
   for name in projectileList:
     fullname = os.path.join(titleFolder, name+'.tga')
