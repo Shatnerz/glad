@@ -1558,7 +1558,7 @@ class Soldier(BasicUnit):
       
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('knife')
+    self.rangedWeapon = BasicRangedAttack('knife',size=(12,12))
     
     self.animation = AnimateUnit('footman', self.directionString)
     
@@ -1582,7 +1582,7 @@ class Archer(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('arrow')
+    self.rangedWeapon = BasicRangedAttack('arrow', size=(14,14))
     
     self.animation = AnimateUnit('archer', self.directionString)
     
@@ -1604,7 +1604,7 @@ class Barbarian(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('hammer')
+    self.rangedWeapon = BasicRangedAttack('hammer', size=(12,12))
     
     self.animation = AnimateUnit('barby', self.directionString)
     
@@ -1637,7 +1637,7 @@ class Elf(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('rock')
+    self.rangedWeapon = BasicRangedAttack('rock',size=(12,12))
     
     self.animation = AnimateUnit('elf', self.directionString)
     
@@ -1672,7 +1672,7 @@ class Golem(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('boulder')
+    self.rangedWeapon = BasicRangedAttack('boulder', size=(26,26))
     
     self.animation = AnimateUnit('golem', self.directionString)
     
@@ -1705,7 +1705,7 @@ class OrcCaptain(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('knife')
+    self.rangedWeapon = BasicRangedAttack('knife', size=(12,12))
     
     self.animation = AnimateUnit('orc2', self.directionString) 
     
@@ -1716,7 +1716,7 @@ class Skeleton(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('bone')
+    self.rangedWeapon = BasicRangedAttack('bone', size=(14,14))
     
     self.animation = AnimateUnit('skeleton', self.directionString) 
     
@@ -1766,7 +1766,7 @@ class Thief(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('knife')
+    self.rangedWeapon = BasicRangedAttack('knife', size=(12,12))
     
     self.animation = AnimateUnit('thief', self.directionString)     
     
