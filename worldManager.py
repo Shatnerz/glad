@@ -13,6 +13,8 @@ class AbstractWorld(object):
   def __init__(self):
     self.objectList = []
     self.controllerList = []
+    
+    self.worldBoundingRect = None
 
     
   def addObject(self, obj):
@@ -26,9 +28,24 @@ class AbstractWorld(object):
   
   #TODO: handle placing object on top of another object
   
+  def createTestGrid(self, (width, height)):
+    
+    #simple grass grid
+    self.tileGrid = [[1 for x in range(width)] for y in range(height)]
+    
+    #the basic tile sizes are 32 x 32
+    worldBoundingRect = (0,0,width*32,height*32)
+    
+    #Set the world bounding rectangle    
+    self.worldBoundingRect = Rect(*worldBoundingRect)
+    
+  
   def draw(self, screen, offset):
     for o in self.objectList:
       o.draw(screen, offset)
+      
+  def getBoundingRect(self):
+    return self.worldBoundingRect
       
   def generateCollisionList(self, time):
     """Generate a dictionary of collisions between object
@@ -516,6 +533,28 @@ class TestWorld(AbstractWorld):
     self.collisionGrid = CollisionGrid(worldBoundingRect[2:4])
     
     
+
+class TestWorld1(AbstractWorld):
+  """Simple world for testing"""
+  
+  def __init__(self):
+    AbstractWorld.__init__(self)
+    
+    #Create empty, boring grid    
+    self.createTestGrid((40,40))
+    
+    
+    #add 1 soldier for testing
+    sold1 = unit.Soldier(pos=(100,100),team=1)    
+    self.objectList.append(sold1)
+    
+    #set the player to control this unit
+    pc1 = PlayerController(sold1)
+    self.controllerList.append(pc1)
+                
+    #set the camera to follow this unit
+    cam1 = glad.renderer.cameraList[0]
+    cam1.followObject(sold1)
     
 
 

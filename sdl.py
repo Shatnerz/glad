@@ -80,11 +80,11 @@ class Camera(object):
     
     
     
-  def update(self):
+  def update(self, world):
+    """Update the camera's position. The 'world' argument is used
+    so that the camera will not center when an object is near the edge"""
     
     if self.objectFollowed:
-      
-      assert self.worldBoundingRect is not None
       
       rW = self.worldRect[2] - self.worldRect[0]
       rH = self.worldRect[3] - self.worldRect[1] 
@@ -98,22 +98,21 @@ class Camera(object):
       ay = oy - rH/2.0
       #by = oy + rH/2.0
       
-      br = self.worldBoundingRect
-      
+      br = world.getBoundingRect()      
       
       #TODO: what to do if the camera can view the entire
       # world at once
-      if ax < br[0] - 10: #Camera at left edge
-        ax = br[0] - 10
-      elif ax > br[2] - rW + 10: #Camera at right edge
-        ax = br[2] - rW + 10
+      if ax < br.x1 - 10: #Camera at left edge
+        ax = br.x1 - 10
+      elif ax > br.x2 - rW + 10: #Camera at right edge
+        ax = br.x2 - rW + 10
         
       #print ax, br[2] - rW
         
-      if ay < br[1] - 10: #camera at top edge
-        ay = br[1] - 10
-      elif ay > br[3] - rH + 10: #Camera at bottom edge
-        ay = br[3] - rH + 10
+      if ay < br.y1 - 10: #camera at top edge
+        ay = br.y1 - 10
+      elif ay > br.y2 - rH + 10: #Camera at bottom edge
+        ay = br.y2 - rH + 10
       
       self.worldRect = (ax,
                         ay,
@@ -369,7 +368,7 @@ class Renderer(object):
     for cam in self.cameraList:     
       
       #update the cameras
-      cam.update()
+      cam.update(world)
       
       #first 2 coords are the pos
       offset = Vector(cam.worldRect[:2])
