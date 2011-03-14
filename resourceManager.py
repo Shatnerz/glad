@@ -5,7 +5,6 @@ import pygame
 
 import glad
 
-
   
 class AbstractResource(object):
   """Abstract class used to keep resource specific subclasses organized"""
@@ -23,7 +22,7 @@ class AbstractResource(object):
     return self.data
   
 class ImageResource(AbstractResource):
-  """Handles images and converts them to pygame surfaces"""
+  """Handles images and converts them to pygame surfaces"""  
   
   def load(self, tile = False, **kwargs):
     
@@ -57,13 +56,24 @@ class ResourceManager(object):
     self.resourceDict[name] = r
     #TODO: for now just load immediately, this may change in the future
     r.load(tile, **kwargs)
+    
+  def registerImage(self, name, filename, **kwargs):
+    pass
+  
+  def registerTile(self, name, filename, **kwargs):
+    pass
   
   def get(self, name):
     return self.resourceDict[name].get()
    
   
 
-      
+class AnimationManager(object):
+  
+  def __init__(self):
+    self.animationDict = {}
+  
+        
       
       
 def registerGladResources():
@@ -296,3 +306,8 @@ def registerGladTiles():
     glad.resource.register(name, 
                            os.path.join(tileFolder,filename), tile=True, 
                            size=tileSize)
+    
+    
+  
+  
+  

@@ -6,19 +6,19 @@ import glad
 
 from util import Vector
 
-class Animation(object):
-  def __init__(self, size, frameList, timer, loop=False):
+
+class AnimationPlayer(object):
+  """Handles updating and drawing animations to the screen"""
+  
+  def __init__(self, animation, timer, loop=False):
     
-    #Note: assumes all frames are the same size!
-    self.frameSize = Vector(size) 
-    
+    self.animation = animation    
     self.timer = timer
     self.loop = loop
-    self.timeLeft = timer
     
-    self.frameList = frameList
     self.currentFrameIndex = 0
-
+    self.timeLeft = timer
+  
   def update(self, time):
     
     #if the timer is disabled, do nothing
@@ -37,30 +37,44 @@ class Animation(object):
       self.currentFrameIndex += 1
       
       #if looping is true, set the frame to the first one
-      if self.currentFrameIndex == len (self.frameList):
+      if self.currentFrameIndex == len (self.animation.frameList):
         
         if self.loop:
           self.currentFrameIndex = 0
         else:
           self.timeLeft = None #disable future updates
-  
+          
   def draw(self, screen, pos):
     
     #pos was the 'center' of the object, now we translate it
     # to the upper left corner for pygame
-    x = pos[0] - self.frameSize[0]/2.0
-    y = pos[1] - self.frameSize[1]/2.0
+    frameWidth = self.animation.frameSize[0]
+    frameHeight = self.animation.frameSize[0]
+    
+    x = pos[0] - frameWidth/2.0
+    y = pos[1] - frameHeight/2.0
     
     #Note: pos should be upperleft coordinate of rect   
-    pyRect = pygame.Rect((x,y), self.frameSize)    
+    pyRect = pygame.Rect((x,y), self.animation.frameSize)    
     
-    screen.blit(self.frameList[self.currentFrameIndex],
+    screen.blit(self.animation.frameList[self.currentFrameIndex],
                 pyRect)
 
 
+class Animation(object):
+  def __init__(self, frameList):
+    
+    assert len(frameList) != 0
+        
+    self.frameList = frameList
+    
+    #Note: assumes all frames are the same size!
+    # gets the size from the first frame
+    self.frameSize = frameList[0].get_size() 
+    
 class TestAnimation(Animation):
   
-  def __init__(self, size, time=1.0, colorList=None):
+  def __init__(self, size=(32,32), colorList=None):
     
     frameList = []
     
@@ -72,10 +86,8 @@ class TestAnimation(Animation):
       f.fill(c)
       frameList.append(f)      
     
-    Animation.__init__(self,size,frameList,time,True)
+    Animation.__init__(self,frameList)   
     
-  def setAnimation(selfself, string):
-    pass
   
 class AnimateRangedAttack(Animation):
   """Animation class for projectiles""" #mostly copied from animateUnit

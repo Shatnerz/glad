@@ -44,8 +44,12 @@ class AbstractObject(object):
     
     #Set up the animation object
     self.frames = []
+    
     #TODO: this is temporary for testing
-    self.animation = animation.TestAnimation(shape.getSize())
+    
+    anim = animation.TestAnimation(size = shape.getSize())
+    
+    self.animationPlayer = animation.AnimationPlayer(anim, 1.0, True) 
     
     #set the team property
     self.team = team
@@ -85,7 +89,7 @@ class AbstractObject(object):
     
     #draw the animation, centered at the objects position
     # and offset according to the location of the camera    
-    self.animation.draw(screen, self.getPos()+offset)
+    self.animationPlayer.draw(screen, self.getPos()+offset)
   
     
   def setPos(self, pos):    
@@ -215,8 +219,8 @@ class AbstractObject(object):
     #TODO: animaitons should be updated after collision detection
     #update the animation
     
-    if self.animation:
-      self.animation.update(time)
+    if self.animationPlayer:
+      self.animationPlayer.update(time)
     
     #update turning clock  
     if self.turning:
@@ -232,6 +236,7 @@ class TestWalker(AbstractObject):
     AbstractObject.__init__(self, pos, shape, **kwargs)
     
     self.collisionType = 'UNIT'
+    self.orientation = Vector(1,0)
     
     
 class BasicUnit(AbstractObject):

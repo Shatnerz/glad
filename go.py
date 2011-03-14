@@ -29,7 +29,7 @@ if __name__ == '__main__':
   resourceManager.registerGladResources()
   
   #Load a test world
-  world = glad.world = worldManager.TestWorld()
+  world = glad.world = worldManager.TestWorld1()
   
     
      
