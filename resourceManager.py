@@ -61,7 +61,11 @@ class ResourceManager(object):
     pass
   
   def registerTile(self, name, filename, **kwargs):
+    """TODO: This is a hack, and should be removed in the future."""
     pass
+  
+  def registerAnimation(self, name, anim):
+    self.resourceDict[name] = anim
   
   def get(self, name):
     return self.resourceDict[name].get()
@@ -71,9 +75,7 @@ class ResourceManager(object):
 class AnimationManager(object):
   
   def __init__(self):
-    self.animationDict = {}
-  
-        
+    self.animationDict = {}       
       
       
 def registerGladResources():
@@ -84,6 +86,12 @@ def registerGladResources():
   registerGladCharacters()
   
   registerGladProjectiles()
+  
+  registerGladAnimations()
+  
+def createGladAnimations():
+  """Convenience function that create animation objects"""
+  pass
   
 def registerGladProjectiles():
   """Load all projectiles into the game"""
