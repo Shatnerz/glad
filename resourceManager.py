@@ -89,6 +89,10 @@ def registerGladResources():
   
   registerGladAnimations()
   
+def registerGladAnimations():
+    """Load all animations into game"""
+    pass
+  
 def createGladAnimations():
   """Convenience function that create animation objects"""
   pass
