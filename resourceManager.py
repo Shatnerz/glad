@@ -93,9 +93,41 @@ def registerGladResources():
 
 def registerGladAnimations():
     """Load all animations into game"""
-    createGladAnimations('footman', 'SOLDIER')
+    #there can be done much better, but just testing now
+    createGladCharAnimations('archer', 'ARCHER')
+    #createGladCharAnimations('archmage', 'ARCHMAGE')# mages also require more for teleport
+    createGladCharAnimations('barby', 'BARBARIAN')
+    #createGladCharAnimations('b_slime', 'BIG_SLIME') #i think slime only have one animation set, can be fixed easily
+    createGladCharAnimations('cleric', 'CLERIC')
+    createGladCharAnimations('druid', 'DRUID')
+    createGladCharAnimations('elf', 'ELF')
+    createGladCharAnimations('faerie', 'FAERIE')
+    createGladCharAnimations('firelem', 'FIRE_ELEM')
+    createGladCharAnimations('footman', 'SOLDIER')
+    createGladCharAnimations('ghost', 'GHOST')
+    #createGladCharAnimations('golem', 'GOLEM')############################
+    #createGladCharAnimations('mage', 'MAGE')#
+    #createGladCharAnimations('m_slime', 'MED_SLIME')
+    createGladCharAnimations('orc', 'ORC')
+    createGladCharAnimations('orc2', 'ORC_CAPTAIN')
+    createGladCharAnimations('skeleton', 'SKELETON')
+    #createGladCharAnimations('s_slime', 'SMALL_SLIME')
+    createGladCharAnimations('thief', 'THIEF')
+    
+    #Projectiles
+    createGladProjectileAnimations('meteor', 'METEOR')
+    createGladProjectileAnimations('rock', 'ROCK', frames = 12)
+    createGladProjectileAnimations('hammer', 'HAMMER', frames = 12)
+    createGladProjectileAnimations('lightnin', 'LIGHTNING')
+    createGladProjectileAnimations('fire', 'FIREBALL')
+    createGladProjectileAnimations('arrow', 'ARROW', frames = 12)
+    #createGladProjectileAnimations('boulder1', 'BOULDER', frames = 1) #doesnt work because the dictionary with directions, will fix when i combine all this
+    createGladProjectileAnimations('farrow', 'FIRE_ARROW', frames=16) #right now doesnt animate like its supposed to
+    #need to add the actually animated projectiles
+    #ie. bone, slimeball, knife, sparkle, (I had boulder in here for some reason, it may have been typo from before
   
-def createGladAnimations(name, unitName, hue=180): #theres probably a better way to get the unit name
+def createGladCharAnimations(name, unitName, hue=180): #theres probably a better way to get the unit name
+    #TODO - add attack animations and make compatible for sprites commented out above
   """Convenience function that create animation objects and registers animations"""
   #get sprite sheet and mask
   spriteSheet = glad.resource.get(name)
@@ -134,7 +166,7 @@ def createGladAnimations(name, unitName, hue=180): #theres probably a better way
                         'DOWNLEFT' : 12,
                         'UPRIGHT' : 13,
                         'DOWNRIGHT' : 14,
-                        'UPLEFT' : 14}
+                        'UPLEFT' : 15}
   for direction in animationReference:
       anim = []
       x = animationReference[direction]
@@ -144,6 +176,37 @@ def createGladAnimations(name, unitName, hue=180): #theres probably a better way
       anim.append(frameList[x+8])
       glad.resource.registerAnimation('ANIM_'+unitName+'_MOVE'+direction, animation.Animation(anim))
       
+def createGladProjectileAnimations(name, projName, frames = 8): #i dont think any projectiles are colorized, so no hue
+    """Creates and registers animations for projectiles"""
+    #fairly positive i should be able to combine this with the character animations function for all animations
+    #get sprite sheet and dimensions
+    spriteSheet = glad.resource.get(name)
+    spriteWidth = spriteSheet.get_width()/frames
+    spriteHeight = spriteSheet.get_height() - 1
+    size = (spriteWidth, spriteHeight)
+    
+    #sort frames into list - should probably combine with createGladCharAnimations
+    frameList = []
+    point = 0
+    for sprite in xrange(frames):
+        frame = spriteSheet.subsurface((point, 1), (spriteWidth, spriteHeight))
+        point += spriteWidth
+        frameList.append(frame)
+    
+    animationReference = {'DOWN' : 0,
+                        'UP' : 1,
+                        'RIGHT' : 2,
+                        'LEFT' : 3,
+                        'DOWNLEFT' : 4,
+                        'UPRIGHT' : 5,
+                        'DOWNRIGHT' : 6,
+                        'UPLEFT' : 7}
+    
+    for direction in animationReference:
+        anim = []
+        x = animationReference[direction]
+        anim.append(frameList[x])
+        glad.resource.registerAnimation('ANIM_'+projName+'_MOVE'+direction, animation.Animation(anim))
   
 def registerGladProjectiles():
   """Load all projectiles into the game"""

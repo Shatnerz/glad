@@ -67,21 +67,21 @@ class AbstractObject(object):
     
     string = ''
     if self.orientation[0] == 0 and self.orientation[1] < 0:
-      string = 'north'
+      string = 'UP'
     elif self.orientation[0] == 0 and self.orientation[1] > 0:
-      string = 'south'
+      string = 'DOWN'
     elif self.orientation[0] > 0 and self.orientation[1] == 0:
-      string = 'east'
+      string = 'RIGHT'
     elif self.orientation[0] < 0 and self.orientation[1] == 0:
-      string = 'west'
+      string = 'LEFT'
     elif self.orientation[0] < 0 and self.orientation[1] < 0:
-      string = 'northwest'
+      string = 'UPLEFT'
     elif self.orientation[0] > 0 and self.orientation[1] > 0:
-      string = 'southeast'
+      string = 'DOWNRIGHT'
     elif self.orientation[0] < 0 and self.orientation[1] > 0:
-      string = 'southwest'
+      string = 'DOWNLEFT'
     elif self.orientation[0] > 0 and self.orientation[1] < 0:
-      string = 'northeast'
+      string = 'UPRIGHT'
     
     return string  
   
@@ -216,7 +216,7 @@ class AbstractObject(object):
     self.requestedPos = self.getPosInTime(time)
     
   def update(self, time):
-    #TODO: animaitons should be updated after collision detection
+    #TODO: animations should be updated after collision detection
     #update the animation
     
     if self.animationPlayer:
@@ -241,7 +241,7 @@ class TestWalker(AbstractObject):
     
 class BasicUnit(AbstractObject):
   
-  def __init__(self, pos, shape, hue=180, **kwargs):
+  def __init__(self, pos, shape, hue=180, name='SOLDIER', **kwargs):
     AbstractObject.__init__(self, pos, shape, **kwargs)
     
     self.collisionType = 'UNIT'
@@ -261,7 +261,12 @@ class BasicUnit(AbstractObject):
     
     #By default, have units face 'right'
     self.orientation = Vector(1,0)
-    self.directionString = self.orientationToString()
+    self.directionString = self.orientationToString() #may not be needed
+    
+    #self.name = "SOLDIER" #might as well be soldier by default, name used to load animations with current name format
+    self.name=name
+    self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
+    self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True)
     
     self.alwaysMove = False
     
@@ -306,11 +311,12 @@ class BasicUnit(AbstractObject):
   
   def update(self, time): 
     
-    if self.animationPlayer: #needed for animationPLayer
-      self.animationPlayer.update(time)
-    
     if self.rangedWeapon:
       self.rangedWeapon.update(time)
+    
+    #update current animation
+    self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
+    self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
     
     self.directionString = self.orientationToString()
     if not self.attacking and not self.shooting:
@@ -339,7 +345,16 @@ class BasicUnit(AbstractObject):
       #self.animation.setAnimation(self.directionString)###pass
       self.turnTimer += time
       
-        
+    #Animate only if moving - code farther below was a little sloppy
+    if not self.alwaysMove:
+        if self.vel[0] != 0 or self.vel[1] != 0:
+            if self.animationPlayer:
+                self.animationPlayer.update(time)
+    else:
+        if self.animationPlayer:
+            self.animationPlayer.update(time)
+    
+    ################This chunk does nothing now, but helped animate before############################    
     #animate only if moving and not shooting
     if not self.alwaysMove:
       if self.vel[0] != 0 or self.vel[1] != 0:
@@ -357,12 +372,13 @@ class BasicUnit(AbstractObject):
       #if self.animation:
        # self.animation.update(time)
        pass
+   #############################################################################################
     
-    #Turn of attacking unless its called in the next loop      
+    #Turn off attacking unless its called in the next loop      
     self.attacking = False
 
 class BasicProjectile(AbstractObject):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, team, moveDir, name='TEST', **kwargs):
     
     AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
     
@@ -377,11 +393,20 @@ class BasicProjectile(AbstractObject):
     
     self.orientation = Vector(moveDir)
     self.directionString = self.orientationToString()
+    
+    self.name=name
+    if self.name == 'TEST':
+        anim = animation.TestAnimation(size = shape.getSize())
+        self.animationPlayer = animation.AnimationPlayer(anim, 1.0, True)
+    else:
+        self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
+        self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True) #freezes if false
+    
   
 class Meteor(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='METEOR', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -391,7 +416,8 @@ class Meteor(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateRangedAttack('meteor', self.directionString)
+    #self.animation = animation.AnimateRangedAttack('meteor', self.directionString)
+    #self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True)
 
 class Bone(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
@@ -457,7 +483,7 @@ class Boulder(BasicProjectile):
 class Rock(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='ROCK', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -467,12 +493,12 @@ class Rock(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateRangedAttack('rock', self.directionString, frames = 12)    
+    #self.animation = animation.AnimateRangedAttack('rock', self.directionString, frames = 12)    
 
 class Hammer(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='HAMMER', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -482,7 +508,7 @@ class Hammer(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateRangedAttack('hammer', self.directionString, frames = 12)
+    #self.animation = animation.AnimateRangedAttack('hammer', self.directionString, frames = 12)
 
 class Sparkle(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
@@ -502,7 +528,7 @@ class Sparkle(BasicProjectile):
 class Lightning(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='LIGHTNING', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -512,12 +538,12 @@ class Lightning(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateRangedAttack('lightnin', self.directionString)
+    #self.animation = animation.AnimateRangedAttack('lightnin', self.directionString)
 
 class Fireball(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='FIREBALL', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -527,12 +553,12 @@ class Fireball(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateRangedAttack('fire', self.directionString)
+    #self.animation = animation.AnimateRangedAttack('fire', self.directionString)
     
 class Arrow(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='ARROW', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -542,12 +568,12 @@ class Arrow(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateRangedAttack('arrow', self.directionString, frames = 12)
+    #self.animation = animation.AnimateRangedAttack('arrow', self.directionString, frames = 12)
 
 class FireArrow(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='FIRE_ARROW', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -557,7 +583,7 @@ class FireArrow(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateRangedAttack('farrow', self.directionString, frames = 16)
+    #self.animation = animation.AnimateRangedAttack('farrow', self.directionString, frames = 16)
 
 
 class BasicRangedAttack(object):
@@ -594,6 +620,7 @@ class BasicRangedAttack(object):
     
     projectilePos = pos + orientation.getNormalized()*gap
     
+    """
     dict = {'rock': Rock(projectilePos,projectileShape,team,orientation),
             'arrow': Arrow(projectilePos,projectileShape,team,orientation),
             'firearrow': FireArrow(projectilePos,projectileShape,team,orientation),
@@ -606,6 +633,10 @@ class BasicRangedAttack(object):
             'sparkle' : Sparkle(projectilePos,projectileShape,team,orientation),
             'boulder' : Boulder(projectilePos,projectileShape,team,orientation)}
     proj = dict[self.type]
+    """
+    
+    #proj = BasicProjectile(projectilePos, projectileShape, team, orientation) #basic projectile should be default
+    proj = Fireball(projectilePos,projectileShape,team,orientation)
     #proj = Rock(projectilePos,projectileShape,team,orientation) 
     
     glad.world.objectList.append(proj)
@@ -700,24 +731,25 @@ class Soldier(BasicUnit):
     #default soldier size    
     shape = Rect.createAtOrigin(32, 32)
       
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='SOLDIER', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('knife',size=(12,12))
+    self.rangedWeapon = BasicRangedAttack('meteor',size=(12,12)) #changed knife to meteor
     
     #self.animation = animation.AnimateUnit('footman', self.directionString)
-    self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict['ANIM_SOLDIER_MOVEUP'], 0.2, True)
+    #self.currentAnimation = 'ANIM_SOLDIER_MOVE'+self.orientationToString()
+    #self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True)
     
 class FireElem(BasicUnit):
   #based off sample soldier for the start
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(32, 32)
         
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='FIRE_ELEM', **kwargs)
         
     #self.rangedWeapon = KnifeThrower()
     self.rangedWeapon = BasicRangedAttack('meteor')
         
-    self.animation = animation.AnimateUnit('firelem', self.directionString, self.hue)
+    #self.animation = animation.AnimateUnit('firelem', self.directionString, self.hue)
     self.alwaysMove = True
    
 class Archer(BasicUnit):
@@ -725,77 +757,77 @@ class Archer(BasicUnit):
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(32, 32)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='ARCHER', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('arrow', size=(14,14))
     
-    self.animation = animation.AnimateUnit('archer', self.directionString)
+    #self.animation = animation.AnimateUnit('archer', self.directionString)
     
 class Archmage(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(32, 28)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='ARCHMAGE', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('fireball')
     
-    self.animation = animation.AnimateMage('archmage', self.directionString)
+    #self.animation = animation.AnimateMage('archmage', self.directionString)
 
 class Barbarian(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(32, 28)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='BARBARIAN', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('hammer', size=(12,12))
     
-    self.animation = animation.AnimateUnit('barby', self.directionString)
+    #self.animation = animation.AnimateUnit('barby', self.directionString)
     
 class Cleric(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(32, 24)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='CLERIC', **kwargs)
     
     self.rangedWeapon = KnifeThrower()
     
-    self.animation = animation.AnimateUnit('cleric', self.directionString)
+    #self.animation = animation.AnimateUnit('cleric', self.directionString)
     
 class Druid(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(32, 22)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='DRUID', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('lightning')
     
-    self.animation = animation.AnimateUnit('druid', self.directionString)
+    #self.animation = animation.AnimateUnit('druid', self.directionString)
     
 class Elf(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(20, 20)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='ELF', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('rock',size=(12,12))
     
-    self.animation = animation.AnimateUnit('elf', self.directionString)
+    #self.animation = animation.AnimateUnit('elf', self.directionString)
     
 class Faerie(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(16, 16)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='FAERIE', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('sparkle')
     
-    self.animation = animation.AnimateUnit('faerie', self.directionString)
+    #self.animation = animation.AnimateUnit('faerie', self.directionString)
     self.alwaysMove = True
     
 class Ghost(BasicUnit):
@@ -803,11 +835,11 @@ class Ghost(BasicUnit):
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(26, 28)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='GHOST', **kwargs)
     
     self.rangedWeapon = KnifeThrower()
     
-    self.animation = animation.AnimateUnit('ghost', self.directionString)
+    #self.animation = animation.AnimateUnit('ghost', self.directionString)
     self.alwaysMove = True
     
 class Golem(BasicUnit):
@@ -826,92 +858,92 @@ class Mage(BasicUnit):
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(32, 28)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='MAGE', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('fireball')
     
-    self.animation = animation.AnimateMage('mage', self.directionString) 
+    #self.animation = animation.AnimateMage('mage', self.directionString) 
 
 class Orc(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(32, 32)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='ORC', **kwargs)
     
     self.rangedWeapon = KnifeThrower()
     
-    self.animation = animation.AnimateUnit('orc', self.directionString) 
+    #self.animation = animation.AnimateUnit('orc', self.directionString) 
     
 class OrcCaptain(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(32, 32)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='ORC_CAPTAIN', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('knife', size=(12,12))
     
-    self.animation = animation.AnimateUnit('orc2', self.directionString) 
+    #self.animation = animation.AnimateUnit('orc2', self.directionString) 
     
 class Skeleton(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(30, 26)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='SKELETON', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('bone', size=(14,14))
     
-    self.animation = animation.AnimateUnit('skeleton', self.directionString) 
+    #self.animation = animation.AnimateUnit('skeleton', self.directionString) 
     
 class SmallSlime(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(24, 24)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='SMALL_SLIME', **kwargs)
     
     self.rangedWeapon = SlimeAttack(self.hue)
     
     self.alwaysMove = True
     
-    self.animation = animation.AnimateSmallSlime('s_slime')
+    #self.animation = animation.AnimateSmallSlime('s_slime')
 
 class MediumSlime(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(40, 40)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='MED_SLIME', **kwargs)
     
     self.rangedWeapon = SlimeAttack(self.hue)
     
     self.alwaysMove = True
     
-    self.animation = animation.AnimateMediumSlime('m_slime')
+    #self.animation = animation.AnimateMediumSlime('m_slime')
     
 class BigSlime(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(64, 64)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='BIG_SLIME', **kwargs)
     
     self.rangedWeapon = SlimeAttack(self.hue)
     
     self.alwaysMove = True
     
-    self.animation = animation.AnimateBigSlime('b_slime')
+    #self.animation = animation.AnimateBigSlime('b_slime')
     
 class Thief(BasicUnit):
   
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(32, 26)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='THIEF', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('knife', size=(12,12))
     
-    self.animation = animation.AnimateUnit('thief', self.directionString)     
+    #self.animation = animation.AnimateUnit('thief', self.directionString)     
     
