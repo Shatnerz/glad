@@ -5,6 +5,7 @@ import pygame
 
 import glad
 
+import animation
   
 class AbstractResource(object):
   """Abstract class used to keep resource specific subclasses organized"""
@@ -88,14 +89,61 @@ def registerGladResources():
   registerGladProjectiles()
   
   registerGladAnimations()
-  
+
+
 def registerGladAnimations():
     """Load all animations into game"""
-    pass
+    createGladAnimations('footman', 'SOLDIER')
   
-def createGladAnimations():
-  """Convenience function that create animation objects"""
-  pass
+def createGladAnimations(name, unitName, hue=180): #theres probably a better way to get the unit name
+  """Convenience function that create animation objects and registers animations"""
+  #get sprite sheet and mask
+  spriteSheet = glad.resource.get(name)
+  mask = glad.resource.get(name+'_mask')
+  sheetWidth = spriteSheet.get_width()
+  #set color
+  #hue = hue
+  #colorize()
+  
+  #determine sprite size
+  #spriteWidth = getSpriteWidth() - in animation
+  #Get sprite width - copying code from animation class
+  spriteWidth = 0
+  for x in range(spriteSheet.get_width()):
+      #look for white pixel denoting width
+      if spriteSheet.get_at((x,0)) == (255, 255, 255):
+          spriteWidth = x+1
+          break
+  spriteHeight = spriteSheet.get_height() - 1
+  size = (spriteWidth, spriteHeight)
+  
+  #sort frames
+  #also taken from animation
+  frameList = []
+  point = 0
+  numFrames = sheetWidth/spriteWidth
+  for sprite in xrange(numFrames):
+      frame = spriteSheet.subsurface((point, 1), (spriteWidth, spriteHeight))
+      point += spriteWidth
+      frameList.append(frame)
+    
+  animationReference = {'DOWN' : 0,
+                        'UP' : 1,
+                        'RIGHT' : 2,
+                        'LEFT' : 3,
+                        'DOWNLEFT' : 12,
+                        'UPRIGHT' : 13,
+                        'DOWNRIGHT' : 14,
+                        'UPLEFT' : 14}
+  for direction in animationReference:
+      anim = []
+      x = animationReference[direction]
+      anim.append(frameList[x])
+      anim.append(frameList[x+4])
+      anim.append(frameList[x])
+      anim.append(frameList[x+8])
+      glad.resource.registerAnimation('ANIM_'+unitName+'_MOVE'+direction, animation.Animation(anim))
+      
   
 def registerGladProjectiles():
   """Load all projectiles into the game"""

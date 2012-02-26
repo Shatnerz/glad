@@ -306,18 +306,22 @@ class BasicUnit(AbstractObject):
   
   def update(self, time): 
     
+    if self.animationPlayer: #needed for animationPLayer
+      self.animationPlayer.update(time)
+    
     if self.rangedWeapon:
       self.rangedWeapon.update(time)
     
     self.directionString = self.orientationToString()
     if not self.attacking and not self.shooting:
-      self.animation.setAnimation(self.directionString)
+      #self.animation.setAnimation(self.directionString)####
+      pass
       
     if self.shooting:
       self.attackTimer += time
       if self.attackTimer >= self.attackTime:
         self.attackTimer = 0
-        self.animation.setAnimation(self.directionString)
+        #self.animation.setAnimation(self.directionString)###
         self.shooting = False
     
     if self.attacking:
@@ -327,11 +331,12 @@ class BasicUnit(AbstractObject):
         self.shooting = True
         self.attackTimer = 0
         if not self.alwaysMove: #TODO fix attack animation for always move
-          self.animation.rangedAttack(self.directionString)
+          #self.animation.rangedAttack(self.directionString)#######
+          pass
     
     #update turnTime
     if self.turning:
-      self.animation.setAnimation(self.directionString)
+      #self.animation.setAnimation(self.directionString)###pass
       self.turnTimer += time
       
         
@@ -339,16 +344,19 @@ class BasicUnit(AbstractObject):
     if not self.alwaysMove:
       if self.vel[0] != 0 or self.vel[1] != 0:
         if self.attacking and not self.shooting:
-          self.animation.setAnimation(self.directionString)
-          if self.animation:
-            self.animation.update(time)
+          #self.animation.setAnimation(self.directionString)####
+          pass
+          #if self.animation:####
+            #self.animation.update(time)####
         if not self.attacking and not self.shooting:
-          self.animation.setAnimation(self.directionString)
-          if self.animation:
-            self.animation.update(time)
+          #self.animation.setAnimation(self.directionString)####
+          pass
+          #if self.animation:
+           # self.animation.update(time)
     else:
-      if self.animation:
-        self.animation.update(time)
+      #if self.animation:
+       # self.animation.update(time)
+       pass
     
     #Turn of attacking unless its called in the next loop      
     self.attacking = False
@@ -696,7 +704,8 @@ class Soldier(BasicUnit):
     
     self.rangedWeapon = BasicRangedAttack('knife',size=(12,12))
     
-    self.animation = animation.AnimateUnit('footman', self.directionString)
+    #self.animation = animation.AnimateUnit('footman', self.directionString)
+    self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict['ANIM_SOLDIER_MOVEUP'], 0.2, True)
     
 class FireElem(BasicUnit):
   #based off sample soldier for the start
