@@ -94,37 +94,60 @@ def registerGladResources():
 def registerGladAnimations():
     """Load all animations into game"""
     #there can be done much better, but just testing now
-    createGladCharAnimations('archer', 'ARCHER')
+    #createGladCharAnimations('archer', 'ARCHER')
     #createGladCharAnimations('archmage', 'ARCHMAGE')# mages also require more for teleport
-    createGladCharAnimations('barby', 'BARBARIAN')
+    #createGladCharAnimations('barby', 'BARBARIAN')
     #createGladCharAnimations('b_slime', 'BIG_SLIME') #i think slime only have one animation set, can be fixed easily
-    createGladCharAnimations('cleric', 'CLERIC')
-    createGladCharAnimations('druid', 'DRUID')
-    createGladCharAnimations('elf', 'ELF')
-    createGladCharAnimations('faerie', 'FAERIE')
-    createGladCharAnimations('firelem', 'FIRE_ELEM')
-    createGladCharAnimations('footman', 'SOLDIER')
-    createGladCharAnimations('ghost', 'GHOST')
-    #createGladCharAnimations('golem', 'GOLEM')############################
+    #createGladCharAnimations('cleric', 'CLERIC')
+    #createGladCharAnimations('druid', 'DRUID')
+    #createGladCharAnimations('elf', 'ELF')
+    #createGladCharAnimations('faerie', 'FAERIE')
+    #createGladCharAnimations('firelem', 'FIRE_ELEM')
+    #createGladCharAnimations('footman', 'SOLDIER')
+    #createGladCharAnimations('ghost', 'GHOST')
+    #createGladCharAnimations('golem', 'GOLEM')
     #createGladCharAnimations('mage', 'MAGE')#
     #createGladCharAnimations('m_slime', 'MED_SLIME')
-    createGladCharAnimations('orc', 'ORC')
-    createGladCharAnimations('orc2', 'ORC_CAPTAIN')
-    createGladCharAnimations('skeleton', 'SKELETON')
+    #createGladCharAnimations('orc', 'ORC')
+    #createGladCharAnimations('orc2', 'ORC_CAPTAIN')
+    #createGladCharAnimations('skeleton', 'SKELETON') ####currently does not load burrow animation
     #createGladCharAnimations('s_slime', 'SMALL_SLIME')
-    createGladCharAnimations('thief', 'THIEF')
+    #createGladCharAnimations('thief', 'THIEF')
     
-    #Projectiles
-    createGladProjectileAnimations('meteor', 'METEOR')
-    createGladProjectileAnimations('rock', 'ROCK', frames = 12)
-    createGladProjectileAnimations('hammer', 'HAMMER', frames = 12)
-    createGladProjectileAnimations('lightnin', 'LIGHTNING')
-    createGladProjectileAnimations('fire', 'FIREBALL')
-    createGladProjectileAnimations('arrow', 'ARROW', frames = 12)
-    #createGladProjectileAnimations('boulder1', 'BOULDER', frames = 1) #doesnt work because the dictionary with directions, will fix when i combine all this
-    createGladProjectileAnimations('farrow', 'FIRE_ARROW', frames=16) #right now doesnt animate like its supposed to
-    #need to add the actually animated projectiles
-    #ie. bone, slimeball, knife, sparkle, (I had boulder in here for some reason, it may have been typo from before
+    #Projectile (using newer function)
+    createGladAnimations('meteor', 'METEOR', 8, 'proj')
+    createGladAnimations('rock', 'ROCK', 12, 'proj')
+    createGladAnimations('hammer', 'HAMMER', 12, 'proj')
+    createGladAnimations('lightnin', 'LIGHTNING', 8, 'proj')
+    createGladAnimations('fire', 'FIREBALL', 8, 'proj')
+    createGladAnimations('arrow', 'ARROW', 12, 'proj')
+    createGladAnimations('boulder1', 'BOULDER', 1, 'proj', spin=True)
+    createGladAnimations('farrow', 'FIRE_ARROW', 16, 'proj')
+    createGladAnimations('bone1', 'BONE', numFrames=8, type='proj', spin=True)
+    createGladAnimations('knife', 'KNIFE', 8, 'proj', spin=True)
+    createGladAnimations('sparkle', 'SPARKLE', 12, 'proj', spin=True)
+    createGladAnimations('sl_ball', 'SLIME_BALL', 12, 'proj', slime=True)
+    
+    #Character (using newer function)
+    createGladAnimations('archer', 'ARCHER')
+    createGladAnimations('archmage', 'ARCHMAGE')
+    createGladAnimations('barby', 'BARBARIAN')
+    createGladAnimations('b_slime', 'BIG_SLIME', slime=3) #slime=x loads slime animation with x frames used to movement
+    createGladAnimations('cleric', 'CLERIC')
+    createGladAnimations('druid', 'DRUID')
+    createGladAnimations('elf', 'ELF')
+    createGladAnimations('faerie', 'FAERIE')
+    createGladAnimations('firelem', 'FIRE_ELEM')
+    createGladAnimations('footman', 'SOLDIER')
+    createGladAnimations('ghost', 'GHOST')
+    createGladAnimations('golem', 'GOLEM')
+    createGladAnimations('mage', 'MAGE')
+    createGladAnimations('m_slime', 'MEDIUM_SLIME', slime=12)
+    createGladAnimations('orc', 'ORC')
+    createGladAnimations('orc2', 'ORC_CAPTAIN')
+    createGladAnimations('skeleton', 'SKELETON')
+    createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
+    createGladAnimations('thief', 'THIEF')
   
 def createGladCharAnimations(name, unitName, hue=180): #theres probably a better way to get the unit name
     #TODO - add attack animations and make compatible for sprites commented out above
@@ -207,6 +230,174 @@ def createGladProjectileAnimations(name, projName, frames = 8): #i dont think an
         x = animationReference[direction]
         anim.append(frameList[x])
         glad.resource.registerAnimation('ANIM_'+projName+'_MOVE'+direction, animation.Animation(anim))
+        
+def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note frames are typically 8 for projectile, name2 will not be needed if i change file names
+    #TODO - add (if needed) color
+    #added type and name2 and **kwargs
+    #name2 is temporary, just need to rename the images
+    #checks kwargs to see if spinning and loads spinning animation
+    #TODO - load all special animations ie burrow and teleport, 
+    """Function that loads any necessary animation from a sprite sheet and registers it"""
+    #and in the future gives it the team color
+    
+    #Get sprite sheet and mask (masks are for later when we add color
+    spriteSheet = glad.resource.get(name)
+    #mask = glad.resource.get(name+'_mask') #only if needs color
+    #Get width to determine how to break up frames
+    sheetWidth = spriteSheet.get_width()
+    #set color (if needs color)
+    #skip color for now
+    
+    #Determine sprite width
+    #Search for pixel denoting width if number of frames is set to 0
+    if numFrames==0:
+        spriteWidth = 0
+        for x in range(sheetWidth):
+            if spriteSheet.get_at((x,0)) == (255, 255, 255): #could get away with if not black
+                spriteWidth = x+1
+                numFrames = sheetWidth/spriteWidth
+                break
+    else:
+        spriteWidth = sheetWidth/numFrames
+    #Determine height and size
+    spriteHeight = spriteSheet.get_height() - 1
+    spriteSize = (spriteWidth, spriteHeight)
+    
+    #Create a list of frames
+    frameList = []
+    refPoint = 0 #reference point use to grab the frame
+    for sprite in xrange(numFrames):
+        frame = spriteSheet.subsurface((refPoint, 1), (spriteWidth, spriteHeight))
+        refPoint += spriteWidth
+        frameList.append(frame)
+    
+    #Sort frames into the current animation
+    #This is where things start to become tricky
+    #need to determine how to name and how to figure out how animation goes
+    
+    #if type == 'char' load as char, 'proj' for proj, 'other' for rest, other will have similar code as spinning
+    if type == 'proj':
+        animationReference = {'DOWN' : 0,
+                              'UP' : 1,
+                              'RIGHT' : 2,
+                              'LEFT' : 3,
+                              'DOWNLEFT' : 4,
+                              'UPRIGHT' : 5,
+                              'DOWNRIGHT' : 6,
+                              'UPLEFT' : 7}
+        
+        #determine if spinning projectile, slime, or normal
+        spin=False
+        slime=False
+        for key in kwargs:
+            if key == 'spin' and kwargs[key]== True: #load spinning projectile
+                spin=True
+            elif key == 'slime' and kwargs[key] == True:
+                slime=True
+        if spin:
+            anim = frameList
+            glad.resource.registerAnimation('ANIM_'+name2+'_SPIN', animation.Animation(anim))
+        elif slime:
+            anim = []
+            frames=7
+            for x in range(frames):
+                anim.append(frameList[x])
+            counter = 5
+            while counter > 0:
+                anim.append(frameList[counter])
+                counter -= 1
+            glad.resource.registerAnimation('ANIM_'+name2, animation.Animation(anim))
+        else: #load normal projectile
+            #Determine the number of frames per animation
+            frames = 1 #frames/animation is typically 1
+            if numFrames >= 16 and numFrames%16==0: #if projectile has 16 or more frames total it is likely animated
+                frames = numFrames/8
+                #Create animations
+            for direction in animationReference:
+                anim = []
+                x = animationReference[direction]
+                counter = 0
+                while counter < frames:               
+                    anim.append(frameList[x+counter*8])
+                    counter += 1
+                glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
+                    
+    elif type == 'char':
+        slime = False
+        for key in kwargs:
+            if key == 'slime':
+                slime=True
+                frames=kwargs[key]
+        if slime:
+            anim = []
+            for x in range(frames):
+                anim.append(frameList[x])
+            counter = frames-2
+            while counter > 0:
+                anim.append(frameList[counter])
+                counter -= 1
+            glad.resource.registerAnimation('ANIM_'+name2+'_MOVE', animation.Animation(anim))
+        else:
+            if numFrames <= 28: #normal sprites have 24, skeleton has 24+4 for burrow, mages have 36, slimes
+                animationReference = {'DOWN' : 0, #assuming this is the same for all, which it is except for mage
+                                      'UP' : 1,
+                                      'RIGHT' : 2,
+                                      'LEFT' : 3,
+                                      'DOWNLEFT' : 12,
+                                      'UPRIGHT' : 13,
+                                      'DOWNRIGHT' : 14,
+                                      'UPLEFT' : 15}
+                for direction in animationReference: #CREATE FUNCTION HERE SINCE I USE THE SAME FOR MAGES
+                    #Walking animations
+                    anim = []
+                    x = animationReference[direction]
+                    anim.append(frameList[x])
+                    anim.append(frameList[x+4])
+                    anim.append(frameList[x])
+                    anim.append(frameList[x+8])
+                    glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
+                    #Attack animation
+                    attackAnim = []
+                    #attackAnim.append(anim[0])
+                    attackAnim.append(anim[1])
+                    glad.resource.registerAnimation('ANIM_'+name2+'_ATTACK'+direction, animation.Animation(attackAnim))
+                
+            elif numFrames == 36: #mages have 36 frames
+                animationReference = {'DOWN' : 0,
+                                      'UP' : 1,
+                                      'RIGHT' : 2,
+                                      'LEFT' : 3,
+                                      'DOWNLEFT' : 20,
+                                      'UPRIGHT' : 21,
+                                      'DOWNRIGHT' : 22,
+                                      'UPLEFT' : 23}
+                for direction in animationReference: #CREATE FUNCTION HERE SINCE I USE THE SAME AS ABOVE
+                    #Walking animations
+                    anim = []
+                    x = animationReference[direction]
+                    anim.append(frameList[x])
+                    anim.append(frameList[x+4])
+                    anim.append(frameList[x])
+                    anim.append(frameList[x+8])
+                    glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
+                    #Attack animations
+                    attackAnim = []
+                    #attackAnim.append(frameList[x])
+                    if x<4:
+                        attackAnim.append(frameList[x+16])
+                    else:
+                        attackAnim.append(frameList[x+12])
+                    glad.resource.registerAnimation('ANIM_'+name2+'_ATTACK'+direction, animation.Animation(attackAnim)) 
+            
+        # need code to grab burrow animation
+    else:
+        print "NOT THERE YET"
+        
+  
+    #Quick test
+    #anim=animation.Animation(frameList)
+    #glad.resource.registerAnimation('ANIM_SOLDIER_MOVEDOWN', anim)
+  
   
 def registerGladProjectiles():
   """Load all projectiles into the game"""

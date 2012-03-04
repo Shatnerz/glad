@@ -241,7 +241,7 @@ class TestWalker(AbstractObject):
     
 class BasicUnit(AbstractObject):
   
-  def __init__(self, pos, shape, hue=180, name='SOLDIER', **kwargs):
+  def __init__(self, pos, shape, hue=180, name='SOLDIER', slime=False, **kwargs):
     AbstractObject.__init__(self, pos, shape, **kwargs)
     
     self.collisionType = 'UNIT'
@@ -265,7 +265,11 @@ class BasicUnit(AbstractObject):
     
     #self.name = "SOLDIER" #might as well be soldier by default, name used to load animations with current name format
     self.name=name
-    self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
+    self.slime=slime
+    if self.slime:
+        self.currentAnimation = 'ANIM_' + self.name +'_MOVE'
+    else:
+        self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
     self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True)
     
     self.alwaysMove = False
@@ -281,6 +285,12 @@ class BasicUnit(AbstractObject):
     self.attackTimer = 0
     
     self.hue = hue
+    
+    #Wasn't sure how sync sync attack animation with attack well
+    #this was the easiest thing i could think of
+    #may be able to change Animation or AnimationPLayer for better method
+    self.animateAttack = False
+    self.animateAttackTimer = 0
     
   def attack(self):
     #self.animation.rangedAttack(self.orientationToString())
@@ -309,16 +319,21 @@ class BasicUnit(AbstractObject):
     else:
       return False
   
-  def update(self, time): 
+  def update(self, time):
+    oldAnimation = self.currentAnimation
     
     if self.rangedWeapon:
       self.rangedWeapon.update(time)
     
-    #update current animation
-    self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
-    self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
-    
     self.directionString = self.orientationToString()
+    
+    #update current animation
+    if self.slime:
+      self.currentAnimation = 'ANIM_' + self.name +'_MOVE'
+    else:
+      if not self.animateAttack:
+        self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.directionString
+    
     if not self.attacking and not self.shooting:
       #self.animation.setAnimation(self.directionString)####
       pass
@@ -329,25 +344,46 @@ class BasicUnit(AbstractObject):
         self.attackTimer = 0
         #self.animation.setAnimation(self.directionString)###
         self.shooting = False
+        
+    #must be better way to sync attack and animation
+    #without this animation is only on for 1 loop
+    if self.animateAttack:
+      cooldown = 0.1
+      if self.animateAttackTimer >= cooldown:
+        self.animateAttack = False
+      else:
+        self.animateAttackTimer += time
     
     if self.attacking:
-      #check if melee or ranged
-      #use ranged since melee isnt really set up
-      if self.rangedAttack():
-        self.shooting = True
-        self.attackTimer = 0
-        if not self.alwaysMove: #TODO fix attack animation for always move
-          #self.animation.rangedAttack(self.directionString)#######
-          pass
+        #check if melee or ranged
+        #use ranged since melee isnt really set up
+        if self.rangedAttack():
+            self.shooting = True
+            self.attackTimer = 0 #reset attack timer
+            
+            #sets animation to attack and starts timer when animation cannot change
+            if not self.slime:
+              self.currentAnimation = 'ANIM_' + self.name + '_ATTACK' + self.directionString
+              self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
+              self.animationPlayer.currentFrameIndex=0
+              self.animateAttack = True
+              self.animateAttackTimer = 0
+            
+            if not self.alwaysMove: #TODO fix attack animation for always move
+                #self.animation.rangedAttack(self.directionString)#######
+                pass
     
     #update turnTime
     if self.turning:
       #self.animation.setAnimation(self.directionString)###pass
       self.turnTimer += time
       
+    if self.currentAnimation != oldAnimation and not self.animateAttack: #only change if not the same and not animating an attack
+      self.animationPlayer.currentFrameIndex=0 #removes any index errors
+      self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
     #Animate only if moving - code farther below was a little sloppy
     if not self.alwaysMove:
-        if self.vel[0] != 0 or self.vel[1] != 0:
+        if self.vel[0] != 0 or self.vel[1] != 0: #ADD SOMETHING HERE TO UPDATE ANIMATION WHILE ATTACKING
             if self.animationPlayer:
                 self.animationPlayer.update(time)
     else:
@@ -378,7 +414,7 @@ class BasicUnit(AbstractObject):
     self.attacking = False
 
 class BasicProjectile(AbstractObject):
-  def __init__(self, pos, shape, team, moveDir, name='TEST', **kwargs):
+  def __init__(self, pos, shape, team, moveDir, name='TEST', spin=False, slime=False, **kwargs): #can probably get rid of spin and slime and use **kwargs, but not how
     
     AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
     
@@ -399,9 +435,13 @@ class BasicProjectile(AbstractObject):
         anim = animation.TestAnimation(size = shape.getSize())
         self.animationPlayer = animation.AnimationPlayer(anim, 1.0, True)
     else:
-        self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
+        if spin:
+            self.currentAnimation = 'ANIM_' + self.name + '_SPIN'
+        elif slime:
+            self.currentAnimation = 'ANIM_' + self.name
+        else:
+            self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
         self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True) #freezes if false
-    
   
 class Meteor(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
@@ -422,7 +462,7 @@ class Meteor(BasicProjectile):
 class Bone(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='BONE', spin=True, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -432,12 +472,12 @@ class Bone(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateSpinningAttack('bone1', self.directionString)
+    #self.animation = animation.AnimateSpinningAttack('bone1', self.directionString)
     
 class SlimeBall(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, hue, **kwargs):
+  def __init__(self, pos, shape, team, moveDir, hue=0, **kwargs): #hue was used to colorize
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='SLIME_BALL', slime=True, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -448,12 +488,12 @@ class SlimeBall(BasicProjectile):
     
     self.hue = hue
 
-    self.animation = animation.AnimateSlimeBall('sl_ball', self.directionString, self.hue, frames = 12)
+    #self.animation = animation.AnimateSlimeBall('sl_ball', self.directionString, self.hue, frames = 12)
     
 class Knife(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='KNIFE', spin=True, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -463,12 +503,12 @@ class Knife(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateSpinningAttack('knife', self.directionString)
+    #self.animation = animation.AnimateSpinningAttack('knife', self.directionString)
  
 class Boulder(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='BOULDER', spin=True, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -478,7 +518,7 @@ class Boulder(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateSpinningAttack('boulder1', self.directionString, frames = 1)   
+    #self.animation = animation.AnimateSpinningAttack('boulder1', self.directionString, frames = 1)   
 
 class Rock(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
@@ -513,7 +553,7 @@ class Hammer(BasicProjectile):
 class Sparkle(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='SPARKLE', spin=True, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -523,7 +563,7 @@ class Sparkle(BasicProjectile):
     self.vel = moveDir.getNormalized()*self.speed
     
 
-    self.animation = animation.AnimateSpinningAttack('sparkle', self.directionString, frames = 12)
+    #self.animation = animation.AnimateSpinningAttack('sparkle', self.directionString, frames = 12)
 
 class Lightning(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
@@ -620,7 +660,6 @@ class BasicRangedAttack(object):
     
     projectilePos = pos + orientation.getNormalized()*gap
     
-    """
     dict = {'rock': Rock(projectilePos,projectileShape,team,orientation),
             'arrow': Arrow(projectilePos,projectileShape,team,orientation),
             'firearrow': FireArrow(projectilePos,projectileShape,team,orientation),
@@ -633,11 +672,10 @@ class BasicRangedAttack(object):
             'sparkle' : Sparkle(projectilePos,projectileShape,team,orientation),
             'boulder' : Boulder(projectilePos,projectileShape,team,orientation)}
     proj = dict[self.type]
-    """
     
     #proj = BasicProjectile(projectilePos, projectileShape, team, orientation) #basic projectile should be default
-    proj = Fireball(projectilePos,projectileShape,team,orientation)
-    #proj = Rock(projectilePos,projectileShape,team,orientation) 
+    #proj = Fireball(projectilePos,projectileShape,team,orientation)
+    ##proj = Knife(projectilePos,projectileShape,team,orientation) 
     
     glad.world.objectList.append(proj)
     
@@ -733,7 +771,7 @@ class Soldier(BasicUnit):
       
     BasicUnit.__init__(self, pos, shape, name='SOLDIER', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('meteor',size=(12,12)) #changed knife to meteor
+    self.rangedWeapon = BasicRangedAttack('knife',size=(12,12)) #changed knife to meteor
     
     #self.animation = animation.AnimateUnit('footman', self.directionString)
     #self.currentAnimation = 'ANIM_SOLDIER_MOVE'+self.orientationToString()
@@ -847,11 +885,11 @@ class Golem(BasicUnit):
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(96, 72)
     
-    BasicUnit.__init__(self, pos, shape, **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='GOLEM', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack('boulder', size=(26,26))
     
-    self.animation = animation.AnimateUnit('golem', self.directionString)
+    #self.animation = animation.AnimateUnit('golem', self.directionString)
     
 class Mage(BasicUnit):
   
@@ -902,7 +940,7 @@ class SmallSlime(BasicUnit):
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(24, 24)
     
-    BasicUnit.__init__(self, pos, shape, name='SMALL_SLIME', **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='SMALL_SLIME', slime=True, **kwargs)
     
     self.rangedWeapon = SlimeAttack(self.hue)
     
@@ -915,7 +953,7 @@ class MediumSlime(BasicUnit):
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(40, 40)
     
-    BasicUnit.__init__(self, pos, shape, name='MED_SLIME', **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='MEDIUM_SLIME', slime=True, **kwargs)
     
     self.rangedWeapon = SlimeAttack(self.hue)
     
@@ -928,7 +966,7 @@ class BigSlime(BasicUnit):
   def __init__(self, pos, **kwargs):
     shape = Rect.createAtOrigin(64, 64)
     
-    BasicUnit.__init__(self, pos, shape, name='BIG_SLIME', **kwargs)
+    BasicUnit.__init__(self, pos, shape, name='BIG_SLIME', slime=True, **kwargs)
     
     self.rangedWeapon = SlimeAttack(self.hue)
     

@@ -545,6 +545,9 @@ class TestWorld1(AbstractWorld):
     
     #add 1 soldier for testing
     sold1 = unit.Soldier(pos=(100,100),team=1)
+    #sold1 = unit.SmallSlime(pos=(100,100),team=1)
+    #sold1 = unit.Archmage(pos=(100,100),team=1)
+    #sold1.rangedWeapon.attackCooldown=1
     #sold1 = unit.TestWalker(pos=(100,100),team=1)
     
     self.objectList.append(sold1)
