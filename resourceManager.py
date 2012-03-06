@@ -236,7 +236,9 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
     #added type and name2 and **kwargs
     #name2 is temporary, just need to rename the images
     #checks kwargs to see if spinning and loads spinning animation
-    #TODO - load all special animations ie burrow and teleport, 
+    #loads anything after normal frames as SPECIAL, must have less than 36 frames total, otherwise treated as mage
+    #EVERYTHING LOADS NOW EXCEPT SLIME SPLIT, and maybe slime movement is off since only 3 frames are used
+    #Relies on number a frames for info
     """Function that loads any necessary animation from a sprite sheet and registers it"""
     #and in the future gives it the team color
     
@@ -338,7 +340,7 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
                 counter -= 1
             glad.resource.registerAnimation('ANIM_'+name2+'_MOVE', animation.Animation(anim))
         else:
-            if numFrames <= 28: #normal sprites have 24, skeleton has 24+4 for burrow, mages have 36, slimes
+            if numFrames < 36: #normal sprites have 24, skeleton has 24+4 for burrow, mages have 36, slimes
                 animationReference = {'DOWN' : 0, #assuming this is the same for all, which it is except for mage
                                       'UP' : 1,
                                       'RIGHT' : 2,
@@ -348,19 +350,25 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
                                       'DOWNRIGHT' : 14,
                                       'UPLEFT' : 15}
                 for direction in animationReference: #CREATE FUNCTION HERE SINCE I USE THE SAME FOR MAGES
-                    #Walking animations
-                    anim = []
-                    x = animationReference[direction]
-                    anim.append(frameList[x])
-                    anim.append(frameList[x+4])
-                    anim.append(frameList[x])
-                    anim.append(frameList[x+8])
-                    glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
-                    #Attack animation
-                    attackAnim = []
-                    #attackAnim.append(anim[0])
-                    attackAnim.append(anim[1])
-                    glad.resource.registerAnimation('ANIM_'+name2+'_ATTACK'+direction, animation.Animation(attackAnim))
+                  #Walking animations
+                  anim = []
+                  x = animationReference[direction]
+                  anim.append(frameList[x])
+                  anim.append(frameList[x+4])
+                  anim.append(frameList[x])
+                  anim.append(frameList[x+8])
+                  glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
+                  #Attack animation
+                  attackAnim = []
+                  #attackAnim.append(anim[0])
+                  attackAnim.append(anim[1])
+                  glad.resource.registerAnimation('ANIM_'+name2+'_ATTACK'+direction, animation.Animation(attackAnim))
+                  #Load remaining frames as special animation
+                if numFrames > 24:
+                  anim=[]
+                  for frame in range(24,numFrames):
+                    anim.append(frameList[frame])
+                  glad.resource.registerAnimation('ANIM_'+name2+'_SPECIAL', animation.Animation(anim))
                 
             elif numFrames == 36: #mages have 36 frames
                 animationReference = {'DOWN' : 0,
@@ -372,22 +380,27 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
                                       'DOWNRIGHT' : 22,
                                       'UPLEFT' : 23}
                 for direction in animationReference: #CREATE FUNCTION HERE SINCE I USE THE SAME AS ABOVE
-                    #Walking animations
-                    anim = []
-                    x = animationReference[direction]
-                    anim.append(frameList[x])
-                    anim.append(frameList[x+4])
-                    anim.append(frameList[x])
-                    anim.append(frameList[x+8])
-                    glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
-                    #Attack animations
-                    attackAnim = []
-                    #attackAnim.append(frameList[x])
-                    if x<4:
-                        attackAnim.append(frameList[x+16])
-                    else:
-                        attackAnim.append(frameList[x+12])
-                    glad.resource.registerAnimation('ANIM_'+name2+'_ATTACK'+direction, animation.Animation(attackAnim)) 
+                  #Walking animations
+                  anim = []
+                  x = animationReference[direction]
+                  anim.append(frameList[x])
+                  anim.append(frameList[x+4])
+                  anim.append(frameList[x])
+                  anim.append(frameList[x+8])
+                  glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
+                  #Attack animations
+                  attackAnim = []
+                  #attackAnim.append(frameList[x])
+                  if x<4:
+                      attackAnim.append(frameList[x+16])
+                  else:
+                      attackAnim.append(frameList[x+12])
+                  glad.resource.registerAnimation('ANIM_'+name2+'_ATTACK'+direction, animation.Animation(attackAnim))
+                #Teleport animation
+                anim = []
+                for frame in range(12,16):
+                  anim.append(frameList[frame])
+                glad.resource.registerAnimation('ANIM_'+name2+'_SPECIAL', animation.Animation(anim))
             
         # need code to grab burrow animation
     else:

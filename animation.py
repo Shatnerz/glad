@@ -18,7 +18,7 @@ class AnimationPlayer(object):
     
     self.currentFrameIndex = 0
     self.timeLeft = timer
-  
+    
   def update(self, time):
     
     #if the timer is disabled, do nothing
@@ -27,7 +27,7 @@ class AnimationPlayer(object):
     
     self.timeLeft -= time
     
-    if self.timeLeft <= 0.0:
+    if self.timeLeft <= 0.0:     
       #reset the time left for the next animation
       # if it is < 0, we shorten the timeLeft by that amount to keep
       # the animation running smoothly
@@ -43,7 +43,7 @@ class AnimationPlayer(object):
           self.currentFrameIndex = 0
         else:
           self.timeLeft = None #disable future updates
-          
+
   def draw(self, screen, pos):
     
     #pos was the 'center' of the object, now we translate it

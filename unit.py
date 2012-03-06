@@ -348,7 +348,7 @@ class BasicUnit(AbstractObject):
     #must be better way to sync attack and animation
     #without this animation is only on for 1 loop
     if self.animateAttack:
-      cooldown = 0.1
+      cooldown = 0.01
       if self.animateAttackTimer >= cooldown:
         self.animateAttack = False
       else:
@@ -363,7 +363,7 @@ class BasicUnit(AbstractObject):
             
             #sets animation to attack and starts timer when animation cannot change
             if not self.slime:
-              self.currentAnimation = 'ANIM_' + self.name + '_ATTACK' + self.directionString
+              self.currentAnimation = 'ANIM_' + self.name + '_ATTACK' + self.directionString       
               self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
               self.animationPlayer.currentFrameIndex=0
               self.animateAttack = True
