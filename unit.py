@@ -348,30 +348,30 @@ class BasicUnit(AbstractObject):
     #must be better way to sync attack and animation
     #without this animation is only on for 1 loop
     if self.animateAttack:
-      cooldown = 0.01
+      cooldown = 0.01 ##should be less then weapon cooldown so it doesnt stick
       if self.animateAttackTimer >= cooldown:
         self.animateAttack = False
       else:
         self.animateAttackTimer += time
     
     if self.attacking:
-        #check if melee or ranged
-        #use ranged since melee isnt really set up
-        if self.rangedAttack():
-            self.shooting = True
-            self.attackTimer = 0 #reset attack timer
+      #check if melee or ranged
+      #use ranged since melee isnt really set up
+      if self.rangedAttack():
+        self.shooting = True
+        self.attackTimer = 0 #reset attack timer
             
-            #sets animation to attack and starts timer when animation cannot change
-            if not self.slime:
-              self.currentAnimation = 'ANIM_' + self.name + '_ATTACK' + self.directionString       
-              self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
-              self.animationPlayer.currentFrameIndex=0
-              self.animateAttack = True
-              self.animateAttackTimer = 0
+        #sets animation to attack and starts timer when animation cannot change
+        if not self.slime:
+          self.currentAnimation = 'ANIM_' + self.name + '_ATTACK' + self.directionString       
+          self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
+          self.animationPlayer.currentFrameIndex=0
+          self.animateAttack = True
+          self.animateAttackTimer = 0
             
-            if not self.alwaysMove: #TODO fix attack animation for always move
-                #self.animation.rangedAttack(self.directionString)#######
-                pass
+        if not self.alwaysMove:
+          #self.animation.rangedAttack(self.directionString)#######
+          pass
     
     #update turnTime
     if self.turning:
@@ -383,12 +383,12 @@ class BasicUnit(AbstractObject):
       self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
     #Animate only if moving - code farther below was a little sloppy
     if not self.alwaysMove:
-        if self.vel[0] != 0 or self.vel[1] != 0: #ADD SOMETHING HERE TO UPDATE ANIMATION WHILE ATTACKING
-            if self.animationPlayer:
-                self.animationPlayer.update(time)
-    else:
+      if self.vel[0] != 0 or self.vel[1] != 0: #ADD SOMETHING HERE TO UPDATE ANIMATION WHILE ATTACKING
         if self.animationPlayer:
-            self.animationPlayer.update(time)
+          self.animationPlayer.update(time)
+    else:
+      if self.animationPlayer:
+         self.animationPlayer.update(time)
     
     ################This chunk does nothing now, but helped animate before############################    
     #animate only if moving and not shooting

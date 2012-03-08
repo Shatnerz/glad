@@ -6,6 +6,8 @@ import pygame
 import glad
 
 import animation
+
+import copy #solves issues with copying list
   
 class AbstractResource(object):
   """Abstract class used to keep resource specific subclasses organized"""
@@ -33,7 +35,7 @@ class ImageResource(AbstractResource):
     if tile:    
       w, h = kwargs['size']
     
-    origSurface = pygame.image.load(filename).convert()
+    origSurface = pygame.image.load(filename).convert(8)
     
     #we have to get the subsurface because the first row is black pixels
     if tile:
@@ -109,25 +111,48 @@ def registerGladAnimations():
     
   #Character (using newer function)
   createGladAnimations('archer', 'ARCHER')
-  createGladAnimations('archmage', 'ARCHMAGE')
-  createGladAnimations('barby', 'BARBARIAN')
-  createGladAnimations('b_slime', 'BIG_SLIME', slime=3) #slime=x loads slime animation with x frames used to movement
-  createGladAnimations('cleric', 'CLERIC')
-  createGladAnimations('druid', 'DRUID')
-  createGladAnimations('elf', 'ELF')
-  createGladAnimations('faerie', 'FAERIE')
-  createGladAnimations('firelem', 'FIRE_ELEM')
-  createGladAnimations('footman', 'SOLDIER')
-  createGladAnimations('ghost', 'GHOST')
-  createGladAnimations('golem', 'GOLEM')
-  createGladAnimations('mage', 'MAGE')
-  createGladAnimations('m_slime', 'MEDIUM_SLIME', slime=12)
-  createGladAnimations('orc', 'ORC')
-  createGladAnimations('orc2', 'ORC_CAPTAIN')
-  createGladAnimations('skeleton', 'SKELETON')
-  createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
-  createGladAnimations('thief', 'THIEF')
+  #createGladAnimations('archmage', 'ARCHMAGE')
+  #createGladAnimations('barby', 'BARBARIAN')
+  #createGladAnimations('b_slime', 'BIG_SLIME', slime=3) #slime=x loads slime animation with x frames used to movement
+  #createGladAnimations('cleric', 'CLERIC')
+  #createGladAnimations('druid', 'DRUID')
+  #createGladAnimations('elf', 'ELF')
+  #createGladAnimations('faerie', 'FAERIE')
+  #createGladAnimations('firelem', 'FIRE_ELEM')
+  #createGladAnimations('footman', 'SOLDIER')
+  #createGladAnimations('ghost', 'GHOST')
+  #createGladAnimations('golem', 'GOLEM')
+  #createGladAnimations('mage', 'MAGE')
+  #createGladAnimations('m_slime', 'MEDIUM_SLIME', slime=12)
+  #createGladAnimations('orc', 'ORC')
+  #createGladAnimations('orc2', 'ORC_CAPTAIN')
+  #createGladAnimations('skeleton', 'SKELETON')
+  #createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
+  #createGladAnimations('thief', 'THIEF')
+  
+  test(glad.resource.get('archer'))
+  #createPalette()
         
+def test(spriteSheet):
+  print spriteSheet.get_palette().__len__()
+  
+def createPalette():
+  """Creates palettes to mess with"""
+  #So far creates red shifted and blue shifted palettes
+  palette = copy.deepcopy(glad.palette)
+  #Creates a red shift palette
+  redPalette = copy.deepcopy(palette)
+  for color in redPalette:
+    color[1] /= 2
+    color[2] /= 2
+  #Create blue shift palette
+  bluePalette = copy.deepcopy(palette)
+  for color in bluePalette:
+    color[0] /= 2
+    color[1] /= 2
+  return bluePalette
+
+
 def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note frames are typically 8 for projectile, name2 will not be needed if i change file names
   #TODO - add (if needed) color
   #added type and name2 and **kwargs
@@ -140,10 +165,12 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
   #and in the future gives it the team color
   
   #Get sprite sheet and mask (masks are for later when we add color)
-  spriteSheet = glad.resource.get(name)
+  spriteSheet = glad.resource.get(name) 
   #mask = glad.resource.get(name+'_mask') #only if needs color
+  
   #Get width to determine how to break up frames
   sheetWidth = spriteSheet.get_width()
+  
   #set color (if needs color)
   #skip color for now
     
@@ -152,7 +179,11 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
   if numFrames==0:
     spriteWidth = 0
     for x in range(sheetWidth):
-      if spriteSheet.get_at((x,0)) == (255, 255, 255): #could get away with if not black
+      #print spriteSheet.get_at((x,0))
+      if spriteSheet.get_at((x,0)) == (216, 72, 216):
+      #if spriteSheet.get_at((x,0)) == (240, 96, 232):
+      #if spriteSheet.get_at((x,0)) == (255, 255, 255): #could get away with if not black
+      #if spriteSheet.get_at((x,0)) != (0,0,0,255): #had to change, when i change to 8-bit, the white pixel must change
         spriteWidth = x+1
         numFrames = sheetWidth/spriteWidth
         break
@@ -161,6 +192,26 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
     #Determine height and size
   spriteHeight = spriteSheet.get_height() - 1
   spriteSize = (spriteWidth, spriteHeight)
+  
+  ##########################SET THE PALETTE##############################
+  #spriteSheet.set_palette(createPalette())
+  #Change ceratin pixels to white
+  if type == 'char':
+    print spriteSheet.get_at((12,11))
+    spriteSheet.set_palette(glad.palette)
+    #transColor = spriteSheet.get_at((0,2))
+    for x in range(sheetWidth):
+      for y in range (spriteSheet.get_height()):
+        color = list(spriteSheet.get_at((x,y)))
+        counter=247
+        for colorToChange in glad.palette[248:]:
+          if colorToChange == color:
+            spriteSheet.set_at((x,y),(glad.palette[(2*16+40)+(255-counter)]))
+            #spriteSheet.set_at((x,y),(255, 255, 255))
+            #print(5*16+40)+(255-counter)
+            #print counter
+            #print glad.palette[(2*16+40)+(255-counter)]
+          #counter += 1
     
   #Create a list of frames
   frameList = []
@@ -290,6 +341,8 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
         glad.resource.registerAnimation('ANIM_'+name2+'_SPECIAL', animation.Animation(anim))
             
   else:
+    #other includes
+    #teleport marker, cleric wall,explosion, gas cloud
     print "NOT THERE YET"
     
 def createCharWalkAnim(direction, x, frameList):
