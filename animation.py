@@ -53,8 +53,8 @@ class AnimationPlayer(object):
         else:
           self.timeLeft = None #disable future updates
     
-    if self.colorCycle:      
-      self.updateColorCycle(time)
+    #if self.colorCycle:      
+    #  self.updateColorCycle(time)
 
   def draw(self, screen, pos):
     
@@ -88,14 +88,20 @@ class AnimationPlayer(object):
       start=0
       end=0
       
-    if self.palette:
+    if self.palette: #THE COMMENTED OUT SECTION IS JUST THE SAME CYCLE IN REVERSE    
       last = self.palette[end-1]
       var = range(start+1,end)
       var.sort(reverse=True)
-      for x in var: #for orange cycling
+      for x in var:
         self.palette[x] = self.palette[x-1]
       self.palette[start] = last
       self.animation.frameList[self.currentFrameIndex].set_palette(self.palette)
+      #first = self.palette[start]
+      #var = range(start,end-1)
+      #for x in var:
+      #  self.palette[x] = self.palette[x+1]
+      #self.palette[end-1] = first
+      #self.animation.frameList[self.currentFrameIndex].set_palette(self.palette)
       
   def updateColorCycle(self, time):
     """Update the color cycling"""

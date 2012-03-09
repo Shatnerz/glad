@@ -221,6 +221,8 @@ class AbstractObject(object):
     
     if self.animationPlayer:
       self.animationPlayer.update(time)
+      if self.animationPlayer.colorCycle:
+        self.animationPlayer.updateColorCycle(time)
     
     #update turning clock  
     if self.turning:
@@ -320,6 +322,12 @@ class BasicUnit(AbstractObject):
       return False
   
   def update(self, time):
+    #update everything needed for a basic unit, sloppy at the moment
+    
+    #Update color cycling
+    if self.animationPlayer:
+      if self.animationPlayer.colorCycle:
+        self.animationPlayer.updateColorCycle(time)
     
     oldAnimation = self.currentAnimation
     
