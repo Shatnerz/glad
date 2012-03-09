@@ -111,79 +111,48 @@ def registerGladAnimations():
     
   #Character (using newer function)
   createGladAnimations('archer', 'ARCHER')
-  #createGladAnimations('archmage', 'ARCHMAGE')
-  #createGladAnimations('barby', 'BARBARIAN')
-  #createGladAnimations('b_slime', 'BIG_SLIME', slime=3) #slime=x loads slime animation with x frames used to movement
-  #createGladAnimations('cleric', 'CLERIC')
-  #createGladAnimations('druid', 'DRUID')
-  #createGladAnimations('elf', 'ELF')
-  #createGladAnimations('faerie', 'FAERIE')
-  #createGladAnimations('firelem', 'FIRE_ELEM')
-  #createGladAnimations('footman', 'SOLDIER')
-  #createGladAnimations('ghost', 'GHOST')
-  #createGladAnimations('golem', 'GOLEM')
-  #createGladAnimations('mage', 'MAGE')
-  #createGladAnimations('m_slime', 'MEDIUM_SLIME', slime=12)
-  #createGladAnimations('orc', 'ORC')
-  #createGladAnimations('orc2', 'ORC_CAPTAIN')
-  #createGladAnimations('skeleton', 'SKELETON')
-  #createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
-  #createGladAnimations('thief', 'THIEF')
-  
-  test(glad.resource.get('archer'))
-  #createPalette()
-        
-def test(spriteSheet):
-  print spriteSheet.get_palette().__len__()
-  
-def createPalette():
-  """Creates palettes to mess with"""
-  #So far creates red shifted and blue shifted palettes
-  palette = copy.deepcopy(glad.palette)
-  #Creates a red shift palette
-  redPalette = copy.deepcopy(palette)
-  for color in redPalette:
-    color[1] /= 2
-    color[2] /= 2
-  #Create blue shift palette
-  bluePalette = copy.deepcopy(palette)
-  for color in bluePalette:
-    color[0] /= 2
-    color[1] /= 2
-  return bluePalette
-
+  createGladAnimations('archmage', 'ARCHMAGE')
+  createGladAnimations('barby', 'BARBARIAN')
+  createGladAnimations('b_slime', 'BIG_SLIME', slime=6) #slime=x loads slime animation with x frames used to movement
+  createGladAnimations('cleric', 'CLERIC')
+  createGladAnimations('druid', 'DRUID')
+  createGladAnimations('elf', 'ELF')
+  createGladAnimations('faerie', 'FAERIE')
+  createGladAnimations('firelem', 'FIRE_ELEM')
+  createGladAnimations('footman', 'SOLDIER')
+  createGladAnimations('ghost', 'GHOST')
+  createGladAnimations('golem', 'GOLEM')
+  createGladAnimations('mage', 'MAGE')
+  createGladAnimations('m_slime', 'MEDIUM_SLIME', slime=12)
+  createGladAnimations('orc', 'ORC')
+  createGladAnimations('orc2', 'ORC_CAPTAIN')
+  createGladAnimations('skeleton', 'SKELETON')
+  createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
+  createGladAnimations('thief', 'THIEF')
 
 def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note frames are typically 8 for projectile, name2 will not be needed if i change file names
-  #TODO - add (if needed) color
+  #Now loads color for everything that needs it
+  #For team color add argument. Right now default to team 0 which is red (should be 7 which loads grey)
   #added type and name2 and **kwargs
   #name2 is temporary, just need to rename the images
   #checks kwargs to see if spinning and loads spinning animation
   #loads anything after normal frames as SPECIAL, must have less than 36 frames total, otherwise treated as mage
   #EVERYTHING LOADS NOW EXCEPT SLIME SPLIT, and maybe slime movement is off since only 3 frames are used
-  #Relies on number a frames for info
-  """Function that loads any necessary animation from a sprite sheet and registers it"""
-  #and in the future gives it the team color
+  #Relies on number a frames for info - probably not the best idea
+  """Function that loads any necessary animation from a sprite sheet, adds team color, and registers it"""
   
   #Get sprite sheet and mask (masks are for later when we add color)
   spriteSheet = glad.resource.get(name) 
-  #mask = glad.resource.get(name+'_mask') #only if needs color
+  #mask = glad.resource.get(name+'_mask') #only if needs color #not used anymore
   
   #Get width to determine how to break up frames
   sheetWidth = spriteSheet.get_width()
-  
-  #set color (if needs color)
-  #skip color for now
-    
   #Determine sprite width
   #Search for pixel denoting width if number of frames is set to 0
   if numFrames==0:
     spriteWidth = 0
     for x in range(sheetWidth):
-      #print spriteSheet.get_at((x,0))
-      if spriteSheet.get_at((x,0)) == (216, 72, 216):
-      #if spriteSheet.get_at((x,0)) == (240, 96, 232):
-      #if spriteSheet.get_at((x,0)) == (255, 255, 255): #could get away with if not black
-      #if spriteSheet.get_at((x,0)) != (0,0,0,255): #had to change, when i change to 8-bit, the white pixel must change
+      if spriteSheet.get_at((x,0)) != (0,0,0,255): #had to change, when i change to 8-bit, the white pixel must change
         spriteWidth = x+1
         numFrames = sheetWidth/spriteWidth
         break
@@ -193,25 +162,9 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
   spriteHeight = spriteSheet.get_height() - 1
   spriteSize = (spriteWidth, spriteHeight)
   
-  ##########################SET THE PALETTE##############################
-  #spriteSheet.set_palette(createPalette())
-  #Change ceratin pixels to white
-  if type == 'char':
-    print spriteSheet.get_at((12,11))
-    spriteSheet.set_palette(glad.palette)
-    #transColor = spriteSheet.get_at((0,2))
-    for x in range(sheetWidth):
-      for y in range (spriteSheet.get_height()):
-        color = list(spriteSheet.get_at((x,y)))
-        counter=247
-        for colorToChange in glad.palette[248:]:
-          if colorToChange == color:
-            spriteSheet.set_at((x,y),(glad.palette[(2*16+40)+(255-counter)]))
-            #spriteSheet.set_at((x,y),(255, 255, 255))
-            #print(5*16+40)+(255-counter)
-            #print counter
-            #print glad.palette[(2*16+40)+(255-counter)]
-          #counter += 1
+#Set team color
+  #if type == 'char': #just for now since slime ball needs color too
+   # setTeamColor(spriteSheet) #add team number here sometime
     
   #Create a list of frames
   frameList = []
@@ -244,6 +197,7 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
       anim = frameList
       glad.resource.registerAnimation('ANIM_'+name2+'_SPIN', animation.Animation(anim))
     elif slime:
+      setTeamColor(spriteSheet)
       anim = []
       frames=7
       for x in range(frames):
@@ -269,6 +223,9 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
         glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
                     
   elif type == 'char':
+    #Set team color first
+    setTeamColor(spriteSheet)
+    #Determine how to handle sprite sheet
     slime = False
     for key in kwargs:
       if key == 'slime':
@@ -344,6 +301,19 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
     #other includes
     #teleport marker, cleric wall,explosion, gas cloud
     print "NOT THERE YET"
+    
+def setTeamColor(spriteSheet, teamNumber=0):
+  """Set the appropriate team color for a sprite sheet based off int teamNumber"""
+  spriteSheet.set_palette(glad.palette) #not needed since sprites change to 8bit with right palette
+  #Go through each pixel and see if it needs change
+  for x in range(spriteSheet.get_width()):
+    for y in range (spriteSheet.get_height()):
+      color = list(spriteSheet.get_at((x,y)))
+      counter=248
+      for colorToChange in glad.palette[248:]:
+        if colorToChange == color:
+          spriteSheet.set_at((x,y),(glad.palette[(teamNumber*16+40)+(255-counter)]))
+        counter += 1
     
 def createCharWalkAnim(direction, x, frameList):
   """Orders the frames of the walking animation. x is the position of the first frame"""

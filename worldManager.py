@@ -433,10 +433,10 @@ class TestWorld(AbstractWorld):
     elf1 = unit.Elf(pos=(700, 750))
     faerie1 = unit.Faerie(pos=(750, 650))
     ghost1 = unit.Ghost(pos=(750, 700))
-    #golem1 = unit.Golem(pos=(850, 700))################not up yet
+    golem1 = unit.Golem(pos=(850, 700))################not up yet
     orc1 = unit.Orc(pos=(750, 750))
     orcCap1 = unit.OrcCaptain(pos=(700, 800))
-    #skel1 = unit.Skeleton(pos=(600, 700))################not up yet
+    skel1 = unit.Skeleton(pos=(600, 700))################not up yet
     thief1 = unit.Thief(pos=(700, 600))
     sold2 = unit.Soldier(pos=(600, 600))
     #mage1 = unit.Mage(pos=(600, 800))
@@ -452,10 +452,10 @@ class TestWorld(AbstractWorld):
     self.objectList.append(elf1)
     self.objectList.append(faerie1)
     self.objectList.append(ghost1)
-    #self.objectList.append(golem1)##################
+    self.objectList.append(golem1)##################
     self.objectList.append(orc1)
     self.objectList.append(orcCap1)
-    #self.objectList.append(skel1)##################
+    self.objectList.append(skel1)##################
     self.objectList.append(thief1)
     self.objectList.append(sold2)
     #self.objectList.append(mage1)
@@ -494,14 +494,14 @@ class TestWorld(AbstractWorld):
     self.controllerList.append(pc8)
     pc9 = PlayerController(ghost1)
     self.controllerList.append(pc9)
-    #pc10 = PlayerController(golem1)#############
-    #self.controllerList.append(pc10)##############
+    pc10 = PlayerController(golem1)#############
+    self.controllerList.append(pc10)##############
     pc11 = PlayerController(orc1)
     self.controllerList.append(pc11)
     pc12 = PlayerController(orcCap1)
     self.controllerList.append(pc12)
-    #pc13 = PlayerController(skel1)#############
-    #self.controllerList.append(pc13)##########
+    pc13 = PlayerController(skel1)#############
+    self.controllerList.append(pc13)##########
     pc14 = PlayerController(thief1)
     self.controllerList.append(pc14)
     pc15 = PlayerController(sold2)
@@ -546,10 +546,9 @@ class TestWorld1(AbstractWorld):
     #add 1 soldier for testing
     #sold1 = unit.Soldier(pos=(100,100),team=1)
     #sold1 = unit.SmallSlime(pos=(100,100),team=1)
-    #sold1 = unit.Archmage(pos=(100,100),team=1)
-    sold1 = unit.Archer(pos=(100,100),team=1)
+    sold1 = unit.BigSlime(pos=(100,100),team=1)
     #sold1 = unit.Golem(pos=(100,100),team=1)
-    sold1.rangedWeapon.attackCooldown=.2
+    sold1.rangedWeapon.attackCooldown=.5
     #sold1 = unit.TestWalker(pos=(100,100),team=1)
     
     self.objectList.append(sold1)
