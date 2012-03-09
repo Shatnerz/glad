@@ -320,6 +320,7 @@ class BasicUnit(AbstractObject):
       return False
   
   def update(self, time):
+    
     oldAnimation = self.currentAnimation
     
     if self.rangedWeapon:
@@ -455,7 +456,8 @@ class Meteor(BasicProjectile):
     #NOTE: must use normalized direction vector!
     self.vel = moveDir.getNormalized()*self.speed
     
-
+    self.animationPlayer.colorCycle=True
+    self.animationPlayer.color = 'ORANGE'
     #self.animation = animation.AnimateRangedAttack('meteor', self.directionString)
     #self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True)
 
@@ -592,7 +594,8 @@ class Fireball(BasicProjectile):
     #NOTE: must use normalized direction vector!
     self.vel = moveDir.getNormalized()*self.speed
     
-
+    self.animationPlayer.colorCycle=True
+    self.animationPlayer.color = 'BLUE'
     #self.animation = animation.AnimateRangedAttack('fire', self.directionString)
     
 class Arrow(BasicProjectile):
@@ -789,6 +792,9 @@ class FireElem(BasicUnit):
         
     #self.animation = animation.AnimateUnit('firelem', self.directionString, self.hue)
     self.alwaysMove = True
+    
+    self.animationPlayer.colorCycle=True
+    self.animationPlayer.color = 'ORANGE'
    
 class Archer(BasicUnit):
   
@@ -810,6 +816,8 @@ class Archmage(BasicUnit):
     
     self.rangedWeapon = BasicRangedAttack('fireball')
     
+    self.animationPlayer.colorCycle=True
+    self.animationPlayer.color = 'ORANGE'
     #self.animation = animation.AnimateMage('archmage', self.directionString)
 
 class Barbarian(BasicUnit):

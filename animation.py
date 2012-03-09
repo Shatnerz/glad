@@ -10,7 +10,7 @@ from util import Vector
 class AnimationPlayer(object):
   """Handles updating and drawing animations to the screen"""
   
-  def __init__(self, animation, timer, loop=False):
+  def __init__(self, animation, timer, loop=False, cycle=False):
     
     self.animation = animation    
     self.timer = timer
@@ -19,8 +19,17 @@ class AnimationPlayer(object):
     self.currentFrameIndex = 0
     self.timeLeft = timer
     
-  def update(self, time):
+    #Color Cycling
+    self.colorCycle = cycle
+    self.color = 'NONE'
+    #grab palette from first frame for palette color cycling
+    if self.animation.frameList[0].get_bitsize() == 8:
+      self.palette = list(self.animation.frameList[0].get_palette())
+    else: self.palette = None
+    self.cycleTime = 0.1
+    self.cycleTimeLeft = self.cycleTime
     
+  def update(self, time):
     #if the timer is disabled, do nothing
     if self.timeLeft is None:
       return
@@ -43,6 +52,9 @@ class AnimationPlayer(object):
           self.currentFrameIndex = 0
         else:
           self.timeLeft = None #disable future updates
+    
+    if self.colorCycle:      
+      self.updateColorCycle(time)
 
   def draw(self, screen, pos):
     
@@ -59,7 +71,44 @@ class AnimationPlayer(object):
     
     screen.blit(self.animation.frameList[self.currentFrameIndex],
                 pyRect)
-
+    
+  def cycleColors(self):
+    """Cycles the colors between start and end in the index"""
+    #end should be 1 greater than in base.h
+    #Orange: 224 to 232
+    #Blue: 208 to 224
+    #Now cycles in reverse order from what I initially had
+    if self.color == 'ORANGE':
+      start=224
+      end=232
+    elif self.color == 'BLUE':
+      start=208
+      end = 224
+    else:
+      start=0
+      end=0
+      
+    if self.palette:
+      last = self.palette[end-1]
+      var = range(start+1,end)
+      var.sort(reverse=True)
+      for x in var: #for orange cycling
+        self.palette[x] = self.palette[x-1]
+      self.palette[start] = last
+      self.animation.frameList[self.currentFrameIndex].set_palette(self.palette)
+      
+  def updateColorCycle(self, time):
+    """Update the color cycling"""
+    if self.cycleTimeLeft >0:
+      self.cycleTimeLeft -= time
+      if self.cycleTimeLeft <= 0.0:
+        self.cycleTimeLeft += self.cycleTime 
+        self.cycleColors()#Color cycles for oranges
+        if self.cycleTimeLeft < 0:
+          updateColorCycle(time)
+    else:
+      self.cycleTimeLeft += self.cycleTime
+      self.colorCycle()
 
 class Animation(object):
   def __init__(self, frameList):
@@ -70,8 +119,8 @@ class Animation(object):
     
     #Note: assumes all frames are the same size!
     # gets the size from the first frame
-    self.frameSize = frameList[0].get_size() 
-    
+    self.frameSize = frameList[0].get_size()
+           
 class TestAnimation(Animation):
   
   def __init__(self, size=(32,32), colorList=None):
