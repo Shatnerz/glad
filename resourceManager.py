@@ -176,6 +176,8 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
     
   #if type == 'char' load as char, 'proj' for proj, 'other' for rest, other will have similar code as spinning
   if type == 'proj':
+    if name2 == 'LIGHTNING': #Quick fix to add color to lightning
+      setTeamColor(spriteSheet)
     animationReference = {'DOWN' : 0,
                           'UP' : 1,
                           'RIGHT' : 2,

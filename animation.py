@@ -26,7 +26,7 @@ class AnimationPlayer(object):
     if self.animation.frameList[0].get_bitsize() == 8:
       self.palette = list(self.animation.frameList[0].get_palette())
     else: self.palette = None
-    self.cycleTime = 0.1
+    self.cycleTime = 0.2
     self.cycleTimeLeft = self.cycleTime
     
   def update(self, time):

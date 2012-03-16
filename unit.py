@@ -1,6 +1,7 @@
 
 import glad
 import animation
+import random #for firing variation
 
 from util import Rect, Vector
 
@@ -31,7 +32,7 @@ class AbstractObject(object):
     #Velocity is the normalized direction scaled by the speed
     #TODO: calculate on update?
     if not self.moveDir.isNullVector():
-      #self.moveDir.normalize()    
+      #self.moveDir.normalize() 
       self.vel = self.moveDir.getNormalized() * self.moveSpeed
     else:
       self.vel = Vector(0,0)
@@ -217,8 +218,8 @@ class AbstractObject(object):
     
   def update(self, time):
     #TODO: animations should be updated after collision detection
-    #update the animation
     
+    #update the animation   
     if self.animationPlayer:
       self.animationPlayer.update(time)
       if self.animationPlayer.colorCycle:
@@ -397,7 +398,7 @@ class BasicUnit(AbstractObject):
           self.animationPlayer.update(time)
     else:
       if self.animationPlayer:
-         self.animationPlayer.update(time)
+        self.animationPlayer.update(time)
     
     ################This chunk does nothing now, but helped animate before############################    
     #animate only if moving and not shooting
@@ -415,15 +416,15 @@ class BasicUnit(AbstractObject):
            # self.animation.update(time)
     else:
       #if self.animation:
-       # self.animation.update(time)
-       pass
+      # self.animation.update(time)
+      pass
    #############################################################################################
     
     #Turn off attacking unless its called in the next loop      
     self.attacking = False
 
 class BasicProjectile(AbstractObject):
-  def __init__(self, pos, shape, team, moveDir, name='TEST', spin=False, slime=False, **kwargs): #can probably get rid of spin and slime and use **kwargs, but not how
+  def __init__(self, pos, shape, team, moveDir, name='TEST', spin=False, speed=400, slime=False, **kwargs): #can probably get rid of spin and slime and use **kwargs, but not sure how
     
     AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
     
@@ -431,13 +432,27 @@ class BasicProjectile(AbstractObject):
     
     
     
-    self.speed = 450.0
+    self.speed = speed
     
     #NOTE: must use normalized direction vector!
     self.vel = moveDir.getNormalized()*self.speed
     
     self.orientation = Vector(moveDir)
     self.directionString = self.orientationToString()
+    
+    #Setup random waver for the projectile
+    waver = self.speed/2 #absolute amount
+    #waver = random.uniform(0,(waver)) - waver/2 #similar to openglad code
+    gauss = random.gauss(0,0.25) #have a gaussian distribution just because i can
+    if gauss > 1: gauss=1
+    elif gauss < -1: gauss=-1
+    waver = waver * gauss    
+    #get vector perpendicular to direction 
+    normVector = Vector(-1*self.vel[1],self.vel[0]).getNormalized() #the negative reciprocal of direction vector
+    #Create vector for the waver
+    waverVector = normVector*waver    
+    #Add waver to velocity vector
+    self.vel += waverVector
     
     self.name=name
     if self.name == 'TEST':
@@ -459,10 +474,10 @@ class Meteor(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
     self.animationPlayer.colorCycle=True
     self.animationPlayer.color = 'ORANGE'
@@ -476,10 +491,10 @@ class Bone(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
 
     #self.animation = animation.AnimateSpinningAttack('bone1', self.directionString)
@@ -487,16 +502,16 @@ class Bone(BasicProjectile):
 class SlimeBall(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, hue=0, **kwargs): #hue was used to colorize
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='SLIME_BALL', slime=True, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='SLIME_BALL', slime=True, speed=75, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 100.0
+    #self.speed = 100.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
-    self.hue = hue
+    self.hue = hue #does this do anything anymore?
 
     #self.animation = animation.AnimateSlimeBall('sl_ball', self.directionString, self.hue, frames = 12)
     
@@ -507,10 +522,10 @@ class Knife(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
 
     #self.animation = animation.AnimateSpinningAttack('knife', self.directionString)
@@ -522,10 +537,10 @@ class Boulder(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
 
     #self.animation = animation.AnimateSpinningAttack('boulder1', self.directionString, frames = 1)   
@@ -537,10 +552,10 @@ class Rock(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
 
     #self.animation = animation.AnimateRangedAttack('rock', self.directionString, frames = 12)    
@@ -552,10 +567,10 @@ class Hammer(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
 
     #self.animation = animation.AnimateRangedAttack('hammer', self.directionString, frames = 12)
@@ -567,10 +582,10 @@ class Sparkle(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
 
     #self.animation = animation.AnimateSpinningAttack('sparkle', self.directionString, frames = 12)
@@ -582,10 +597,10 @@ class Lightning(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
 
     #self.animation = animation.AnimateRangedAttack('lightnin', self.directionString)
@@ -597,14 +612,14 @@ class Fireball(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
     self.animationPlayer.colorCycle=True
     self.animationPlayer.color = 'BLUE'
-    #self.animation = animation.AnimateRangedAttack('fire', self.directionString)
+    #self.animation = animation.AnimateRangedAttack('fire', self.directionString) 
     
 class Arrow(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
@@ -613,10 +628,10 @@ class Arrow(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
 
     #self.animation = animation.AnimateRangedAttack('arrow', self.directionString, frames = 12)
@@ -628,10 +643,10 @@ class FireArrow(BasicProjectile):
     
     self.collisionType = 'PROJECTILE'
     
-    self.speed = 450.0
+    #self.speed = 450.0
     
     #NOTE: must use normalized direction vector!
-    self.vel = moveDir.getNormalized()*self.speed
+    #self.vel = moveDir.getNormalized()*self.speed
     
 
     #self.animation = animation.AnimateRangedAttack('farrow', self.directionString, frames = 16)
