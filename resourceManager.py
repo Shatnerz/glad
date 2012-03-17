@@ -109,7 +109,7 @@ def registerGladAnimations():
   createGladAnimations('sparkle', 'SPARKLE', 12, 'proj', spin=True)
   createGladAnimations('sl_ball', 'SLIME_BALL', 12, 'proj', slime=True)
     
-  #Character (using newer function)
+  #Characters
   createGladAnimations('archer', 'ARCHER')
   createGladAnimations('archmage', 'ARCHMAGE')
   createGladAnimations('barby', 'BARBARIAN')

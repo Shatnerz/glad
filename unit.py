@@ -2,6 +2,7 @@
 import glad
 import animation
 import random #for firing variation
+import util
 
 from util import Rect, Vector
 
@@ -430,7 +431,7 @@ class BasicProjectile(AbstractObject):
     
     self.collisionType = 'PROJECTILE'
     
-    
+    self.owner = None
     
     self.speed = speed
     
@@ -439,6 +440,9 @@ class BasicProjectile(AbstractObject):
     
     self.orientation = Vector(moveDir)
     self.directionString = self.orientationToString()
+    
+    self.range = 400 #arbitrary range in pixels for now, not in src they do line of sight * step size
+    self.distance = 0 #distance traveled
     
     #Setup random waver for the projectile
     waver = self.speed/2 #absolute amount
@@ -456,16 +460,26 @@ class BasicProjectile(AbstractObject):
     
     self.name=name
     if self.name == 'TEST':
-        anim = animation.TestAnimation(size = shape.getSize())
-        self.animationPlayer = animation.AnimationPlayer(anim, 1.0, True)
+      anim = animation.TestAnimation(size = shape.getSize())
+      self.animationPlayer = animation.AnimationPlayer(anim, 1.0, True)
     else:
-        if spin:
-            self.currentAnimation = 'ANIM_' + self.name + '_SPIN'
-        elif slime:
-            self.currentAnimation = 'ANIM_' + self.name
-        else:
-            self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
-        self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True) #freezes if false
+      if spin:
+        self.currentAnimation = 'ANIM_' + self.name + '_SPIN'
+      elif slime:
+        self.currentAnimation = 'ANIM_' + self.name
+      else:
+        self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
+      self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True) #freezes if false
+  def update(self,time):
+    #Update as abstract object
+    AbstractObject.update(self,time)
+    
+    #Update distance traveled
+    self.distance += self.vel.getNorm()*time
+    
+    #Check to see if it hit max range yet
+    if self.distance >= self.range:
+      self.alive = False
   
 class Meteor(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
@@ -502,7 +516,9 @@ class Bone(BasicProjectile):
 class SlimeBall(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, hue=0, **kwargs): #hue was used to colorize
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='SLIME_BALL', slime=True, speed=75, **kwargs)
+    self.speed=75
+    
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='SLIME_BALL', slime=True, speed=self.speed, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -529,6 +545,42 @@ class Knife(BasicProjectile):
     
 
     #self.animation = animation.AnimateSpinningAttack('knife', self.directionString)
+    
+class MagicKnife(Knife):
+  """Knife that returns to owner"""
+  def __init__(self, pos, shape, team, moveDir, **kwargs):
+    Knife.__init__(self, pos, shape, team, moveDir)
+    
+    self.returning = False
+    self.owner = None
+    
+    
+  def update(self, time):
+    #Update as abstract object
+    AbstractObject.update(self,time)
+    
+    if not self.owner.alive:
+      self.alive = False
+    
+    if not self.returning:
+      #Update distance traveled
+      self.distance += self.vel.getNorm()*time    
+      #Check to see if it hit max range yet
+      if self.distance >= self.range:
+        self.returning = True
+    
+    elif self.returning: #returns along straight line between knife and owner
+      direction = self.pos - self.owner.pos
+      direction = direction.getNormalized()
+      self.vel = direction*self.speed
+      
+      #Check for collision with owner
+      #There should be amuch better way to do this
+      a=util.Rect(self.pos[0]+self.shape.x1, self.pos[1]+self.shape.y1, self.pos[0]+self.shape.x2, self.pos[1]+self.shape.y2)
+      b=util.Rect(self.owner.pos[0]+self.owner.shape.x1, self.owner.pos[1]+self.owner.shape.y1, self.owner.pos[0]+self.owner.shape.x2, self.owner.pos[1]+self.owner.shape.y2)
+      if util.Rect.touches(a, b): #need a way to see if collides with owner
+        self.alive = False
+ 
  
 class Boulder(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
@@ -610,7 +662,7 @@ class Fireball(BasicProjectile):
     
     BasicProjectile.__init__(self, pos, shape, team, moveDir, name='FIREBALL', **kwargs)
     
-    self.collisionType = 'PROJECTILE'
+    #self.collisionType = 'PROJECTILE' #NEED TO COMMENT OUT FOR EVERY OTHER PROJECTILE TOO
     
     #self.speed = 450.0
     
@@ -654,7 +706,9 @@ class FireArrow(BasicProjectile):
 
 class BasicRangedAttack(object):
   
-  def __init__(self, type='meteor', size=(16,16)):
+  def __init__(self, owner, type='meteor', size=(16,16)):
+    
+    self.owner = owner
     
     self.nextAttackTimer = 0.0
     self.attackCooldown = 0.4
@@ -698,6 +752,7 @@ class BasicRangedAttack(object):
             'sparkle' : Sparkle(projectilePos,projectileShape,team,orientation),
             'boulder' : Boulder(projectilePos,projectileShape,team,orientation)}
     proj = dict[self.type]
+    proj.owner = self.owner
     
     #proj = BasicProjectile(projectilePos, projectileShape, team, orientation) #basic projectile should be default
     #proj = Fireball(projectilePos,projectileShape,team,orientation)
@@ -739,14 +794,18 @@ class SlimeAttack(BasicRangedAttack):
 class KnifeThrower(object):
   """Spawns knives"""
   
-  def __init__(self):
+  def __init__(self, owner):
     
     #temporary defaults for now    
-    self.maxKnives = 99
-    self.knivesAvailable = 99
+    self.maxKnives = 3
+    self.knivesAvailable = 3
     
     self.nextAttackTimer = 0.0
     self.attackCooldown = 0.4
+    
+    self.knives = [] #list of knives
+    
+    self.owner = owner
     
   def update(self, time):
     
@@ -755,6 +814,13 @@ class KnifeThrower(object):
     if self.nextAttackTimer < 0.0:
       self.nextAttackTimer = 0.0   
   
+    #Check on knives
+    for knife in self.knives:
+      if knife.alive == False:
+        self.knivesAvailable += 1
+    #Remove all "dead" knives
+    self.knives = [x for x in self.knives if x.alive]
+    
   def attack(self, pos, gap, orientation,team):
     
     if self.nextAttackTimer != 0.0 or self.knivesAvailable == 0:
@@ -774,11 +840,12 @@ class KnifeThrower(object):
     knifePos = pos + orientation.getNormalized()*gap
     
     #print orientation.getNormalized() * gap
+        
+    #proj = BasicProjectile(knifePos,knifeShape,team,orientation)
+    proj = MagicKnife(knifePos,knifeShape,team,orientation)
+    proj.owner = self.owner #Set owner so it can return and keep track of unit
     
-    
-    
-    proj = BasicProjectile(knifePos,knifeShape,team,orientation)
-    
+    self.knives.append(proj)
     
     glad.world.objectList.append(proj)
     
@@ -786,7 +853,6 @@ class KnifeThrower(object):
 #   TODO: spawn knife here
     
     
-
 class Soldier(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -797,7 +863,8 @@ class Soldier(BasicUnit):
       
     BasicUnit.__init__(self, pos, shape, name='SOLDIER', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('knife',size=(12,12)) #changed knife to meteor
+    #self.rangedWeapon = BasicRangedAttack('knife',size=(12,12))
+    self.rangedWeapon = KnifeThrower(self)
     
     #self.animation = animation.AnimateUnit('footman', self.directionString)
     #self.currentAnimation = 'ANIM_SOLDIER_MOVE'+self.orientationToString()
@@ -811,7 +878,7 @@ class FireElem(BasicUnit):
     BasicUnit.__init__(self, pos, shape, name='FIRE_ELEM', **kwargs)
         
     #self.rangedWeapon = KnifeThrower()
-    self.rangedWeapon = BasicRangedAttack('meteor')
+    self.rangedWeapon = BasicRangedAttack(self, 'meteor')
         
     #self.animation = animation.AnimateUnit('firelem', self.directionString, self.hue)
     self.alwaysMove = True
@@ -826,7 +893,7 @@ class Archer(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='ARCHER', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('arrow', size=(14,14))
+    self.rangedWeapon = BasicRangedAttack(self, 'arrow', size=(14,14))
     
     #self.animation = animation.AnimateUnit('archer', self.directionString)
     
@@ -837,7 +904,7 @@ class Archmage(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='ARCHMAGE', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('fireball')
+    self.rangedWeapon = BasicRangedAttack(self, 'fireball')
     
     self.animationPlayer.colorCycle=True
     self.animationPlayer.color = 'ORANGE'
@@ -850,7 +917,7 @@ class Barbarian(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='BARBARIAN', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('hammer', size=(12,12))
+    self.rangedWeapon = BasicRangedAttack(self, 'hammer', size=(12,12))
     
     #self.animation = animation.AnimateUnit('barby', self.directionString)
     
@@ -861,7 +928,7 @@ class Cleric(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='CLERIC', **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = KnifeThrower(self)
     
     #self.animation = animation.AnimateUnit('cleric', self.directionString)
     
@@ -872,7 +939,7 @@ class Druid(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='DRUID', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('lightning')
+    self.rangedWeapon = BasicRangedAttack(self, 'lightning')
     
     #self.animation = animation.AnimateUnit('druid', self.directionString)
     
@@ -883,7 +950,7 @@ class Elf(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='ELF', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('rock',size=(12,12))
+    self.rangedWeapon = BasicRangedAttack(self, 'rock',size=(12,12))
     
     #self.animation = animation.AnimateUnit('elf', self.directionString)
     
@@ -894,7 +961,7 @@ class Faerie(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='FAERIE', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('sparkle')
+    self.rangedWeapon = BasicRangedAttack(self, 'sparkle')
     
     #self.animation = animation.AnimateUnit('faerie', self.directionString)
     self.alwaysMove = True
@@ -906,7 +973,7 @@ class Ghost(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='GHOST', **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = KnifeThrower(self)
     
     #self.animation = animation.AnimateUnit('ghost', self.directionString)
     self.alwaysMove = True
@@ -918,7 +985,7 @@ class Golem(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='GOLEM', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('boulder', size=(26,26))
+    self.rangedWeapon = BasicRangedAttack(self, 'boulder', size=(26,26))
     
     #self.animation = animation.AnimateUnit('golem', self.directionString)
     
@@ -929,7 +996,7 @@ class Mage(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='MAGE', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('fireball')
+    self.rangedWeapon = BasicRangedAttack(self, 'fireball')
     
     #self.animation = animation.AnimateMage('mage', self.directionString) 
 
@@ -940,7 +1007,7 @@ class Orc(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='ORC', **kwargs)
     
-    self.rangedWeapon = KnifeThrower()
+    self.rangedWeapon = KnifeThrower(self)
     
     #self.animation = animation.AnimateUnit('orc', self.directionString) 
     
@@ -951,7 +1018,7 @@ class OrcCaptain(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='ORC_CAPTAIN', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('knife', size=(12,12))
+    self.rangedWeapon = BasicRangedAttack(self, 'knife', size=(12,12))
     
     #self.animation = animation.AnimateUnit('orc2', self.directionString) 
     
@@ -962,7 +1029,7 @@ class Skeleton(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='SKELETON', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('bone', size=(14,14))
+    self.rangedWeapon = BasicRangedAttack(self, 'bone', size=(14,14))
     
     #self.animation = animation.AnimateUnit('skeleton', self.directionString) 
     
@@ -1012,7 +1079,7 @@ class Thief(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='THIEF', **kwargs)
     
-    self.rangedWeapon = BasicRangedAttack('knife', size=(12,12))
+    self.rangedWeapon = BasicRangedAttack(self, 'knife', size=(12,12))
     
     #self.animation = animation.AnimateUnit('thief', self.directionString)     
     

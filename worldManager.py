@@ -544,7 +544,7 @@ class TestWorld1(AbstractWorld):
     self.createTestGrid((40,40))
     
     #add 1 soldier for testing
-    sold1 = unit.Archmage(pos=(100,100),team=1)
+    sold1 = unit.Soldier(pos=(100,100),team=1)
     #sold1 = unit.BigSlime(pos=(100,100),team=1)
     #sold1 = unit.Golem(pos=(100,100),team=1)
     sold1.rangedWeapon.attackCooldown=.1
