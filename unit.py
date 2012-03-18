@@ -429,6 +429,8 @@ class BasicProjectile(AbstractObject):
     
     AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
     
+    glad.resource.resourceDict['fwip'].play() #Just testing sound, should be for only stuff on screen or nearby
+    
     self.collisionType = 'PROJECTILE'
     
     self.owner = None
@@ -554,6 +556,7 @@ class MagicKnife(Knife):
     self.returning = False
     self.owner = None
     
+    #glad.resource.resourceDict['fwip'].play()
     
   def update(self, time):
     #Update as abstract object

@@ -43,6 +43,21 @@ class ImageResource(AbstractResource):
     else:
       self.data = origSurface
         
+class SoundResource(AbstractResource):
+  """Handles sounds"""
+  
+  def load(self, **kwargs):
+    
+    kwargs = self.kwargs
+    filename = self.filename
+    
+    sound = pygame.mixer.Sound(filename)
+    
+    self.data = sound
+    
+  def play(self):
+    """Play the sound"""
+    self.data.play()
     
 class ResourceManager(object):
   """Keep track of all the images we need and whether or not they are
@@ -52,13 +67,19 @@ class ResourceManager(object):
   
     self.resourceDict = {}
   
-  def register(self, name, filename,tile = False, **kwargs):
-        
-    #TODO assumes it's an image right now
-    r = ImageResource(filename,**kwargs)    
-    self.resourceDict[name] = r
-    #TODO: for now just load immediately, this may change in the future
-    r.load(tile, **kwargs)
+  def register(self, name, filename,tile = False, sound = False, **kwargs):
+    
+    if not sound:    
+      #TODO assumes it's an image right now
+      r = ImageResource(filename,**kwargs)    
+      self.resourceDict[name] = r
+      #TODO: for now just load immediately, this may change in the future
+      r.load(tile, **kwargs)
+    
+    if sound:
+      r = SoundResource(filename, **kwargs)
+      self.resourceDict[name] = r
+      r.load()
     
   def registerImage(self, name, filename, **kwargs):
     pass
@@ -91,6 +112,8 @@ def registerGladResources():
   registerGladProjectiles()
   
   registerGladAnimations()
+  
+  registerGladSounds()
 
 
 def registerGladAnimations():
@@ -110,25 +133,53 @@ def registerGladAnimations():
   createGladAnimations('sl_ball', 'SLIME_BALL', 12, 'proj', slime=True)
     
   #Characters
-  createGladAnimations('archer', 'ARCHER')
-  createGladAnimations('archmage', 'ARCHMAGE')
-  createGladAnimations('barby', 'BARBARIAN')
-  createGladAnimations('b_slime', 'BIG_SLIME', slime=6) #slime=x loads slime animation with x frames used to movement
-  createGladAnimations('cleric', 'CLERIC')
-  createGladAnimations('druid', 'DRUID')
-  createGladAnimations('elf', 'ELF')
-  createGladAnimations('faerie', 'FAERIE')
-  createGladAnimations('firelem', 'FIRE_ELEM')
+  #createGladAnimations('archer', 'ARCHER')
+  #createGladAnimations('archmage', 'ARCHMAGE')
+  #createGladAnimations('barby', 'BARBARIAN')
+  #createGladAnimations('b_slime', 'BIG_SLIME', slime=6) #slime=x loads slime animation with x frames used to movement
+  #createGladAnimations('cleric', 'CLERIC')
+  #createGladAnimations('druid', 'DRUID')
+  #createGladAnimations('elf', 'ELF')
+  #createGladAnimations('faerie', 'FAERIE')
+  #createGladAnimations('firelem', 'FIRE_ELEM')
   createGladAnimations('footman', 'SOLDIER')
-  createGladAnimations('ghost', 'GHOST')
-  createGladAnimations('golem', 'GOLEM')
-  createGladAnimations('mage', 'MAGE')
-  createGladAnimations('m_slime', 'MEDIUM_SLIME', slime=12)
-  createGladAnimations('orc', 'ORC')
-  createGladAnimations('orc2', 'ORC_CAPTAIN')
-  createGladAnimations('skeleton', 'SKELETON')
-  createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
-  createGladAnimations('thief', 'THIEF')
+  #createGladAnimations('ghost', 'GHOST')
+  #createGladAnimations('golem', 'GOLEM')
+  #createGladAnimations('mage', 'MAGE')
+  #createGladAnimations('m_slime', 'MEDIUM_SLIME', slime=12)
+  #createGladAnimations('orc', 'ORC')
+  #createGladAnimations('orc2', 'ORC_CAPTAIN')
+  #createGladAnimations('skeleton', 'SKELETON')
+  #createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
+  #createGladAnimations('thief', 'THIEF')
+  
+def registerGladSounds():
+  """Load all sounds into the game"""
+  
+  titleFolder = 'resources/sound'
+  
+  soundList = ['blast1',
+               'bolt1',
+               'boom',
+               'charge',
+               'clang',
+               'die1',
+               'die2',
+               'eat',
+               'explode1',
+               'faerie1',
+               'fwip',
+               'heal1',
+               'money',
+               'roar',
+               'teleport',
+               'twang',
+               'yo']
+  
+  for name in soundList: 
+    fullname = os.path.join(titleFolder, name+'.wav')
+    glad.resource.register(name, fullname, sound=True)  
+    #glad.resource.resourceDict[name].data.play()
 
 def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note frames are typically 8 for projectile, name2 will not be needed if i change file names
   #Now loads color for everything that needs it
