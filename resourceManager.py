@@ -111,6 +111,8 @@ def registerGladResources():
   
   registerGladProjectiles()
   
+  registerGladImages()
+  
   registerGladAnimations()
   
   registerGladSounds()
@@ -134,7 +136,7 @@ def registerGladAnimations():
     
   #Characters
   #createGladAnimations('archer', 'ARCHER')
-  #createGladAnimations('archmage', 'ARCHMAGE')
+  createGladAnimations('archmage', 'ARCHMAGE')
   #createGladAnimations('barby', 'BARBARIAN')
   #createGladAnimations('b_slime', 'BIG_SLIME', slime=6) #slime=x loads slime animation with x frames used to movement
   #createGladAnimations('cleric', 'CLERIC')
@@ -152,6 +154,16 @@ def registerGladAnimations():
   #createGladAnimations('skeleton', 'SKELETON')
   #createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
   #createGladAnimations('thief', 'THIEF')
+  
+  ##################################### NON ANIMATED IMAGES########################################
+  #still need tree, bonepile, key, heart, portal, tent
+  createGladAnimations('blood', 'BLOOD', 4, type='other', anim=False)
+  createGladAnimations('bottle', 'POTION', 12, type='other', anim=False, names=['RED','GREEN','BLUE','YELLOW','PURPLE','CYAN',
+                                                                                'BROWN','PINK','DARKGREEN','DARKPURPLE','YELLOWORANGE','LIGHTBLUE'])
+                                                                                #These potions should be named better
+  createGladAnimations('bar1', 'BAR', 2, type='other', anim=False, names=['GOLD', 'SILVER'])
+  createGladAnimations('food1', 'FOOD', 1, type='other', anim=False)
+  ################################################################################################
   
 def registerGladSounds():
   """Load all sounds into the game"""
@@ -351,9 +363,47 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
         glad.resource.registerAnimation('ANIM_'+name2+'_SPECIAL', animation.Animation(anim))
             
   else:
-    #other includes
-    #teleport marker, cleric wall,explosion, gas cloud
-    print "NOT THERE YET"
+    #THIS IS NOOT COMPLETE, I AM JUST ADDING AS I NEED TO
+    
+    #other includes:teleport marker, cleric wall,explosion, gas cloud
+    #i think i'm going to through in non animated stuff in here too, like blood
+    
+    sequence = range(numFrames)
+    anim = True
+    names = None
+    
+    #kwargs
+    #color=True -> add a team color
+    #sequence=[ints] -> set a sequence of frame numbers for animation
+    #anim=False -> each animation is just 1 frame
+    #names=[strings] -> list of names for the animations, otherwise names them with numbers
+    
+    for x in kwargs:
+      if x == 'color': #Color is needed for doors
+        if kwargs[x] == True:
+          setTeamColor(spriteSheet)
+      if x == 'sequence': #Set special order of frames if not sequential
+        sequence = kwargs[x]
+      if x == 'anim': #Check to see if not actually animated
+        if kwargs[x] == False:
+          anim = False
+      if x == 'names':
+        names = kwargs[x]
+    
+    if anim == False:
+      counter = 0
+      for frame in frameList:
+        anim = [frame]
+        if not names and numFrames>1:
+          animName = 'ANIM_'+name2+'_'+str(counter)
+        elif not names and numFrames==1:
+          animName = 'ANIM_'+name2
+        elif names:
+          animName = 'ANIM_'+name2+'_'+names[counter]
+        glad.resource.registerAnimation(animName, animation.Animation(anim))
+        #print animName
+        counter += 1
+    
     
 def setTeamColor(spriteSheet, teamNumber=0):
   """Set the appropriate team color for a sprite sheet based off int teamNumber"""
@@ -448,6 +498,22 @@ def registerGladCharacters():
     #  print 'Cannot load image:', fullname
     #  raise SystemExit, msg
     
+
+def registerGladImages():
+  """Registers the rest of the images that are not tiles, characters, or projectile"""
+  
+  folder = 'resources/images/'
+  
+  imageList = ['bomb1', 'boom1', 'clerglow', 'cloud', 'door', 'expand8', 'marker', 'mshield',
+               'telflash', 'tower4', 'tower4b', 'towersm1', 'wave', 'wave2', 'wave3', 'bar1',
+               'bigtree', 'blood', 'bonepile', 'bottle', 'food1', 'key', 'lifegem', 'stain',
+               'teleport', 'tent', 'tree']
+  
+  for name in imageList:
+    fullname = os.path.join(folder, name+'.tga')
+    glad.resource.register(name, fullname)
+    transColor = glad.resource.resourceDict[name].data.get_at((0,1))
+    glad.resource.resourceDict[name].data.set_colorkey(transColor)
       
 def registerGladTiles():
   """This function loads all of the gladiator tiles"""

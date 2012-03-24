@@ -4,6 +4,7 @@ import animation
 import random #for firing variation
 import util
 
+
 from util import Rect, Vector
 
 class AbstractObject(object):
@@ -60,6 +61,13 @@ class AbstractObject(object):
     self.turning = False
     self.turnTime = 0.05
     self.turnTimer = 0
+    
+  def onCollide(self, object):
+    """Handles collision"""
+    pass
+    #print object
+    #if object.collisionType == 'PROJECTILE':
+    #  print 'proj'
     
   def orientationToString(self):
     #converts the orientation to a string
@@ -242,6 +250,22 @@ class TestWalker(AbstractObject):
     self.collisionType = 'UNIT'
     self.orientation = Vector(1,0)
     
+
+class Corpse(AbstractObject):
+  
+  def __init__(self, pos, owner, **kwargs):
+    shape = Rect.createAtOrigin(32, 32)
+    AbstractObject.__init__(self, pos, shape, **kwargs)
+    
+    glad.resource.resourceDict['die1'].play()
+    
+    self.owner = self #keep a copy of who the corpse belongs to
+    
+    self.collisionType = 'OBJ' #should add collision type for corpses, keys, and other stuff you can walk over
+    
+    self.currentAnimation = 'ANIM_BLOOD_'+str(random.randint(0,3))
+    self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True)
+    
     
 class BasicUnit(AbstractObject):
   
@@ -257,6 +281,9 @@ class BasicUnit(AbstractObject):
     self.intelligence = 10
     self.armor = 10    
     self.level = 1
+    
+    self.life = 100
+    self.mana = 100
     
     self.rangedWeapon = None
     self.meleeWeapon = None
@@ -322,9 +349,18 @@ class BasicUnit(AbstractObject):
       #self.animation.rangedAttack(self.directionString)
     else:
       return False
+    
+  def die(self):
+    """Kill unit and handle his death"""
+    self.alive = False
+    corpse = Corpse(self.pos, self)
+    glad.world.objectList.append(corpse)
   
   def update(self, time):
     #update everything needed for a basic unit, sloppy at the moment
+    if self.life <= 0:
+      #self.alive = False
+      self.die() #need to implement
     
     #Update color cycling
     if self.animationPlayer:
@@ -429,13 +465,16 @@ class BasicProjectile(AbstractObject):
     
     AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
     
-    glad.resource.resourceDict['fwip'].play() #Just testing sound, should be for only stuff on screen or nearby
+    #glad.resource.resourceDict['fwip'].play() #Just testing sound, should be for only stuff on screen or nearby,
+    #also this sound if off for everyone except the soldier, but theres probably better way to handle sound
     
     self.collisionType = 'PROJECTILE'
     
     self.owner = None
     
     self.speed = speed
+    
+    self.damage = 25
     
     #NOTE: must use normalized direction vector!
     self.vel = moveDir.getNormalized()*self.speed
@@ -482,6 +521,12 @@ class BasicProjectile(AbstractObject):
     #Check to see if it hit max range yet
     if self.distance >= self.range:
       self.alive = False
+  
+  def onCollide(self, enemy):
+    #should only happen with units, but may want to chec if unit
+    enemy.life -= self.damage
+    self.alive = False
+    print enemy.life
   
 class Meteor(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
@@ -556,6 +601,9 @@ class MagicKnife(Knife):
     self.returning = False
     self.owner = None
     
+    self.damage=1
+    
+    self.alreadyHit = []
     #glad.resource.resourceDict['fwip'].play()
     
   def update(self, time):
@@ -577,13 +625,29 @@ class MagicKnife(Knife):
       direction = direction.getNormalized()
       self.vel = direction*self.speed
       
-      #Check for collision with owner
-      #There should be amuch better way to do this
-      a=util.Rect(self.pos[0]+self.shape.x1, self.pos[1]+self.shape.y1, self.pos[0]+self.shape.x2, self.pos[1]+self.shape.y2)
-      b=util.Rect(self.owner.pos[0]+self.owner.shape.x1, self.owner.pos[1]+self.owner.shape.y1, self.owner.pos[0]+self.owner.shape.x2, self.owner.pos[1]+self.owner.shape.y2)
-      if util.Rect.touches(a, b): #need a way to see if collides with owner
+      #if util.getCollisionInfo(self.shape.translate(self.getPos()), self.vel, self.owner.shape.translate(self.owner.getPos()), self.owner.vel):
+      #  time = util.getCollisionInfo(self.shape.translate(self.getPos()), self.vel, self.owner.shape.translate(self.owner.getPos()), self.owner.vel)[0]
+      #  print time  
+      
+      #CHECK FOR COLLISION WITH OWNER
+      #cant use onCollide because collision between unit and projectile of the same team are ignored
+      if util.Rect.touches(self.shape.translate(self.getPos()), self.owner.shape.translate(self.owner.getPos())):
+        #print "COLLISION"
         self.alive = False
- 
+      
+  def onCollide(self, enemy):
+    #collision should only happen on collision with enemy units
+    self.returning = True
+    #Make sure enemy is only hit once
+    #Note - may want to take into account circumstance when knife can hit twice, like if soldier outruns knife and it hits twice
+    applyDamage = True
+    for hit in self.alreadyHit:
+      if enemy==hit:
+        applyDamage = False
+    if applyDamage:
+      self.alreadyHit.append(enemy)
+      BasicProjectile.onCollide(self, enemy)
+      self.alive = True
  
 class Boulder(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):

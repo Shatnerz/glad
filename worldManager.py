@@ -230,7 +230,10 @@ class AbstractWorld(object):
       collisionInfo = collisionList.pop(0)
       colTime,objI,objIStops,objJ,objJStops = collisionInfo
       
-      print 'Collision: %s' % str(collisionInfo)
+      objI.onCollide(objJ)
+      objJ.onCollide(objI)
+      
+      #print 'Collision: %s' % str(collisionInfo)
 #      print objI.getRect()
 #      print objJ.getRect()
 
@@ -544,13 +547,18 @@ class TestWorld1(AbstractWorld):
     self.createTestGrid((40,40))
     
     #add 1 soldier for testing
-    sold1 = unit.Soldier(pos=(100,100),team=1)
+    sold1 = unit.Archmage(pos=(100,100),team=1)
     #sold1 = unit.BigSlime(pos=(100,100),team=1)
     #sold1 = unit.Golem(pos=(100,100),team=1)
     sold1.rangedWeapon.attackCooldown=.1
     #sold1 = unit.TestWalker(pos=(100,100),team=1)
     
+    sold2 = unit.Soldier(pos=(200,200), team=2)
+    sold3 = unit.Soldier(pos=(200, 100), team=1)
+    
     self.objectList.append(sold1)
+    self.objectList.append(sold2)
+    self.objectList.append(sold3)
     
     #set the player to control this unit
     pc1 = PlayerController(sold1)
