@@ -135,7 +135,7 @@ def registerGladAnimations():
   createGladAnimations('sl_ball', 'SLIME_BALL', 12, 'proj', slime=True)
     
   #Characters
-  #createGladAnimations('archer', 'ARCHER')
+  createGladAnimations('archer', 'ARCHER')
   createGladAnimations('archmage', 'ARCHMAGE')
   #createGladAnimations('barby', 'BARBARIAN')
   #createGladAnimations('b_slime', 'BIG_SLIME', slime=6) #slime=x loads slime animation with x frames used to movement
@@ -143,7 +143,7 @@ def registerGladAnimations():
   #createGladAnimations('druid', 'DRUID')
   #createGladAnimations('elf', 'ELF')
   #createGladAnimations('faerie', 'FAERIE')
-  #createGladAnimations('firelem', 'FIRE_ELEM')
+  createGladAnimations('firelem', 'FIRE_ELEM')
   createGladAnimations('footman', 'SOLDIER')
   #createGladAnimations('ghost', 'GHOST')
   #createGladAnimations('golem', 'GOLEM')
@@ -152,7 +152,7 @@ def registerGladAnimations():
   #createGladAnimations('orc', 'ORC')
   #createGladAnimations('orc2', 'ORC_CAPTAIN')
   #createGladAnimations('skeleton', 'SKELETON')
-  #createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
+  createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
   #createGladAnimations('thief', 'THIEF')
   
   ##################################### NON ANIMATED IMAGES########################################

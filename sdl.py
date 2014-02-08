@@ -77,6 +77,7 @@ class Camera(object):
     self.worldBoundingRect = None
     
     self.overlay = Overlay(self.screen)
+    self.hud = HUD(self.screen, self)
     
     
     
@@ -141,9 +142,8 @@ class Overlay(object):
     self.font = pygame.font.Font(self.fontFilename, self.fontSize)
     
     self.surface = surface
-    
-    
-  
+      
+        
   def drawLineOfText(self, text, pos, antialias, color, background=None):
     
     newSurf = self.font.render(text, 
@@ -165,9 +165,7 @@ class Overlay(object):
     for line in text.split('\n'):
       self.drawLineOfText(line, (xPos,yPos),False,(255,255,255),(0,255,0))
       
-      yPos += self.font.get_linesize()
-    
-    
+      yPos += self.font.get_linesize()  
     
   def draw(self):    
     
@@ -182,14 +180,54 @@ class Overlay(object):
     
     self.drawText(text, (700,50))   
     
+    
+class HUD(Overlay):
+  """Head's up display showing general info on the object being followed by the camera"""
+  
+  def __init__(self, surface, cam):
+    Overlay.__init__(self,surface)
+    #self.target = target #only keeps original target of none
+    self.cam = cam
+    
+  def draw(self):
+    text = 'HUD'
+    text += '\n' + str( type(self.cam.objectFollowed) )
+    
+    object = self.cam.objectFollowed
+    
+    #Team
+    text += '\nTeam: '
+    if object.life:
+      text += str(object.team)
+    else:
+      text += 'NA'
+    text += '\n'
+    #Life
+    text += '\nLife: '
+    if object.life:
+      text += str(object.life)
+    else:
+      text += 'NA'
+    #Mana
+    text += '\nMana: '
+    if object.life:
+      text += str(object.mana)
+    else:
+      text += 'NA'
+    
+    self.drawText(text, (50,25))
+    #text =+ 'Life: %l' % self.target.life
 
 class InputInterface(object):
   """Records input from the keyboard"""
   
   def __init__(self):
     self.keysPressed = set()
+    self.keysTapped = set() #keys just pressed and not being held yet
     
   def update(self, event):    
+
+    self.keysTapped.clear()
 
     if event.type == pygame.KEYDOWN:
       self.keysPressed.add(event.key)
@@ -202,9 +240,17 @@ class InputInterface(object):
       #BUGFIX: use discard, because keys may be pressed at program start
       self.keysPressed.discard(event.key)
       
+    self.keysTapped=self.keysPressed.copy()
+    
   def isKeyPressed(self, key):
     return key in self.keysPressed
 
+  def isKeyTapped(self, key):
+    if key in self.keysTapped:
+      self.keysTapped.remove(key)
+      return True
+    else: return False
+    
 class Renderer(object):
   """Handles drawing everything to the screen."""
   
@@ -389,6 +435,7 @@ class Renderer(object):
       
       #draw the overlay on top of the world
       cam.overlay.draw()
+      cam.hud.draw()
   
       #using double buffered display, so flip
       pygame.display.flip()

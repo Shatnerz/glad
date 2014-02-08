@@ -26,7 +26,8 @@ class AnimationPlayer(object):
     if self.animation.frameList[0].get_bitsize() == 8:
       self.palette = list(self.animation.frameList[0].get_palette())
     else: self.palette = None
-    self.cycleTime = 0.2
+    #self.cycleTime = 0.2
+    self.cycleTime = 0.25 #3 cycles from source times 13.6msper cycle
     self.cycleTimeLeft = self.cycleTime
     
   def update(self, time):
@@ -95,7 +96,12 @@ class AnimationPlayer(object):
       for x in var:
         self.palette[x] = self.palette[x-1]
       self.palette[start] = last
-      self.animation.frameList[self.currentFrameIndex].set_palette(self.palette)
+      #self.animation.frameList[self.currentFrameIndex].set_palette(self.palette) #set pallet on current frame
+      for frame in self.animation.frameList: #cycle entire animation
+        frame.set_palette(self.palette)
+      #should cycle entire spritesheet but the above works for now
+        
+        
       #first = self.palette[start]
       #var = range(start,end-1)
       #for x in var:

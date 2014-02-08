@@ -41,8 +41,13 @@ class AbstractWorld(object):
     
   
   def draw(self, screen, offset):
+    #draw corpses first then the rest
     for o in self.objectList:
-      o.draw(screen, offset)
+      if isinstance(o, unit.Corpse):
+        o.draw(screen, offset)
+    for o in self.objectList:
+      if not isinstance(o, unit.Corpse):
+        o.draw(screen, offset)
       
   def getBoundingRect(self):
     return self.worldBoundingRect
@@ -399,6 +404,26 @@ class PlayerController(object):
     #attack
     if glad.input.isKeyPressed(self.attack):
       self.target.attack()
+    
+    #I was bored
+    if glad.input.isKeyTapped(pygame.K_q):
+      glad.resource.resourceDict['yo'].play()
+    #Quick hack to switch characters
+    if glad.input.isKeyTapped(pygame.K_TAB):
+      if glad.world.objectList.__contains__(self.target):
+        x = glad.world.objectList.index(self.target)
+      else:
+        x=0
+      numObjects = len(glad.world.objectList)
+      switch=False
+      while switch==False:
+        x += 1
+        if x >= numObjects:
+          x -= numObjects
+        if isinstance(glad.world.objectList[x],unit.BasicUnit):
+          self.target = glad.world.objectList[x]
+          glad.renderer.cameraList[0].followObject(self.target)
+          switch = True
      
 class TestWorld(AbstractWorld):
   """Simple world for testing"""
@@ -547,11 +572,12 @@ class TestWorld1(AbstractWorld):
     self.createTestGrid((40,40))
     
     #add 1 soldier for testing
-    sold1 = unit.Archmage(pos=(100,100),team=1)
+    sold1 = unit.FireElem(pos=(100,100),team=1)
     #sold1 = unit.BigSlime(pos=(100,100),team=1)
     #sold1 = unit.Golem(pos=(100,100),team=1)
-    sold1.rangedWeapon.attackCooldown=.1
     #sold1 = unit.TestWalker(pos=(100,100),team=1)
+    
+    sold1.rangedWeapon.attackCooldown=.1
     
     sold2 = unit.Soldier(pos=(200,200), team=2)
     sold3 = unit.Soldier(pos=(200, 100), team=1)
@@ -568,7 +594,8 @@ class TestWorld1(AbstractWorld):
     cam1 = glad.renderer.cameraList[0]
     cam1.followObject(sold1)
     
-
+    #HUD testing
+    print cam1.overlay
 
 
 """

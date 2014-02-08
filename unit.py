@@ -257,7 +257,7 @@ class Corpse(AbstractObject):
     shape = Rect.createAtOrigin(32, 32)
     AbstractObject.__init__(self, pos, shape, **kwargs)
     
-    glad.resource.resourceDict['die1'].play()
+    glad.resource.resourceDict['die1'].play() #just testing sound out again
     
     self.owner = self #keep a copy of who the corpse belongs to
     
@@ -269,7 +269,7 @@ class Corpse(AbstractObject):
     
 class BasicUnit(AbstractObject):
   
-  def __init__(self, pos, shape, hue=180, name='SOLDIER', slime=False, **kwargs):
+  def __init__(self, pos, shape = Rect.createAtOrigin(32, 32), hue=180, name='SOLDIER', slime=False, **kwargs):
     AbstractObject.__init__(self, pos, shape, **kwargs)
     
     self.collisionType = 'UNIT'
@@ -345,6 +345,8 @@ class BasicUnit(AbstractObject):
                              gap, 
                              self.orientation,
                              self.team):
+      #subtract mana points - just for testing now
+      self.mana -= 5
       return True
       #self.animation.rangedAttack(self.directionString)
     else:
@@ -464,9 +466,6 @@ class BasicProjectile(AbstractObject):
   def __init__(self, pos, shape, team, moveDir, name='TEST', spin=False, speed=400, slime=False, **kwargs): #can probably get rid of spin and slime and use **kwargs, but not sure how
     
     AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
-    
-    #glad.resource.resourceDict['fwip'].play() #Just testing sound, should be for only stuff on screen or nearby,
-    #also this sound if off for everyone except the soldier, but theres probably better way to handle sound
     
     self.collisionType = 'PROJECTILE'
     
@@ -821,6 +820,18 @@ class BasicRangedAttack(object):
     proj = dict[self.type]
     proj.owner = self.owner
     
+    
+    #play sound - if I do this when the projectile is created, it plays it for each entry in the above dict
+    #need to play sound for each attack, right now just this, knifeThrower, and slimeAttack
+    if self.type == "arrow":
+      glad.resource.resourceDict['twang'].play()
+    elif self.type == "sparkle":
+      glad.resource.resourceDict['faerie1'].play()
+    elif self.type == "lightning":
+      glad.resource.resourceDict['bolt1'].play()
+    else:
+      glad.resource.resourceDict['fwip'].play() #Just testing sound, should be for only stuff on screen or nearby,
+    
     #proj = BasicProjectile(projectilePos, projectileShape, team, orientation) #basic projectile should be default
     #proj = Fireball(projectilePos,projectileShape,team,orientation)
     ##proj = Knife(projectilePos,projectileShape,team,orientation) 
@@ -855,6 +866,9 @@ class SlimeAttack(BasicRangedAttack):
     #proj = Rock(projectilePos,projectileShape,team,orientation) 
     
     glad.world.objectList.append(proj)
+    
+    #play sound effect
+    glad.resource.resourceDict['fwip'].play()
     
     return True  
   
@@ -915,6 +929,9 @@ class KnifeThrower(object):
     self.knives.append(proj)
     
     glad.world.objectList.append(proj)
+    
+    #play sound effect
+    glad.resource.resourceDict['fwip'].play()
     
     return True
 #   TODO: spawn knife here

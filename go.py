@@ -26,6 +26,7 @@ if __name__ == '__main__':
   glad.renderer = renderer
   
   #Load default glad graphics
+  
   resourceManager.registerGladResources()
   
   #Load a test world
