@@ -124,7 +124,6 @@ def registerGladAnimations():
   createGladAnimations('meteor', 'METEOR', 8, 'proj')
   createGladAnimations('rock', 'ROCK', 12, 'proj')
   createGladAnimations('hammer', 'HAMMER', 12, 'proj')
-  createGladAnimations('lightnin', 'LIGHTNING', 8, 'proj')
   createGladAnimations('fire', 'FIREBALL', 8, 'proj')
   createGladAnimations('arrow', 'ARROW', 12, 'proj')
   createGladAnimations('boulder1', 'BOULDER', 1, 'proj', spin=True)
@@ -132,28 +131,33 @@ def registerGladAnimations():
   createGladAnimations('bone1', 'BONE', numFrames=8, type='proj', spin=True)
   createGladAnimations('knife', 'KNIFE', 8, 'proj', spin=True)
   createGladAnimations('sparkle', 'SPARKLE', 12, 'proj', spin=True)
-  createGladAnimations('sl_ball', 'SLIME_BALL', 12, 'proj', slime=True)
+  #Team colored projectiles
+  for teamNum in range(5):
+    createGladAnimations('lightnin', 'LIGHTNING', 8, 'proj',team=teamNum)
+    createGladAnimations('sl_ball', 'SLIME_BALL', 12, 'proj', slime=True,team=teamNum)
     
   #Characters
-  createGladAnimations('archer', 'ARCHER')
-  createGladAnimations('archmage', 'ARCHMAGE')
+  #createGladAnimations('archer', 'ARCHER')
+  #createGladAnimations('archmage', 'ARCHMAGE')
   #createGladAnimations('barby', 'BARBARIAN')
   #createGladAnimations('b_slime', 'BIG_SLIME', slime=6) #slime=x loads slime animation with x frames used to movement
   #createGladAnimations('cleric', 'CLERIC')
   #createGladAnimations('druid', 'DRUID')
   #createGladAnimations('elf', 'ELF')
   #createGladAnimations('faerie', 'FAERIE')
-  createGladAnimations('firelem', 'FIRE_ELEM')
-  createGladAnimations('footman', 'SOLDIER')
-  #createGladAnimations('ghost', 'GHOST')
-  #createGladAnimations('golem', 'GOLEM')
-  #createGladAnimations('mage', 'MAGE')
-  #createGladAnimations('m_slime', 'MEDIUM_SLIME', slime=12)
-  #createGladAnimations('orc', 'ORC')
-  #createGladAnimations('orc2', 'ORC_CAPTAIN')
-  #createGladAnimations('skeleton', 'SKELETON')
-  createGladAnimations('s_slime', 'SMALL_SLIME', slime=8)
-  #createGladAnimations('thief', 'THIEF')
+  for teamNum in range(5):
+    createGladAnimations('firelem', 'FIRE_ELEM',team=teamNum)
+    createGladAnimations('footman', 'SOLDIER', team=teamNum)
+    
+    #createGladAnimations('ghost', 'GHOST')
+    #createGladAnimations('golem', 'GOLEM')
+    #createGladAnimations('mage', 'MAGE')
+    #createGladAnimations('m_slime', 'MEDIUM_SLIME', slime=12)
+    #createGladAnimations('orc', 'ORC')
+    #createGladAnimations('orc2', 'ORC_CAPTAIN')
+    #createGladAnimations('skeleton', 'SKELETON')
+    createGladAnimations('s_slime', 'SMALL_SLIME', slime=8, team=teamNum)
+    #createGladAnimations('thief', 'THIEF')
   
   ##################################### NON ANIMATED IMAGES########################################
   #still need tree, bonepile, key, heart, portal, tent
@@ -205,8 +209,14 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
   """Function that loads any necessary animation from a sprite sheet, adds team color, and registers it"""
   
   #Get sprite sheet and mask (masks are for later when we add color)
-  spriteSheet = glad.resource.get(name) 
+  spriteSheet = glad.resource.get(name).copy() #need a copy so setting the color doesnt overwrite original
   #mask = glad.resource.get(name+'_mask') #only if needs color #not used anymore
+  
+  #check if team (color) is specified
+  team = 0
+  for key in kwargs:
+    if key == 'team': #load spinning projectile    
+      team = kwargs[key]
   
   #Get width to determine how to break up frames
   sheetWidth = spriteSheet.get_width()
@@ -238,9 +248,9 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
     frameList.append(frame)
     
   #if type == 'char' load as char, 'proj' for proj, 'other' for rest, other will have similar code as spinning
+  #HANDLE PROJECTILE ANIMATIONS
   if type == 'proj':
-    if name2 == 'LIGHTNING': #Quick fix to add color to lightning
-      setTeamColor(spriteSheet)
+      
     animationReference = {'DOWN' : 0,
                           'UP' : 1,
                           'RIGHT' : 2,
@@ -258,11 +268,13 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
         spin=True
       elif key == 'slime' and kwargs[key] == True:
         slime=True
+    #handle spinning proj
     if spin:
       anim = frameList
-      glad.resource.registerAnimation('ANIM_'+name2+'_SPIN', animation.Animation(anim))
+      glad.resource.registerAnimation('ANIM_'+name2+'_SPIN', animation.Animation(anim)) #note - no spinning proj have team color atm
+    #handle slime proj
     elif slime:
-      setTeamColor(spriteSheet)
+      setTeamColor(spriteSheet,team)
       anim = []
       frames=7
       for x in range(frames):
@@ -271,8 +283,9 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
         while counter > 0:
           anim.append(frameList[counter])
           counter -= 1
-        glad.resource.registerAnimation('ANIM_'+name2, animation.Animation(anim))
-    else: #load normal projectile
+        glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team), animation.Animation(anim))
+    #handle typical projectile
+    else:
       #Determine the number of frames per animation
       frames = 1 #frames/animation is typically 1
       if numFrames >= 16 and numFrames%16==0: #if projectile has 16 or more frames total it is likely animated
@@ -285,17 +298,23 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
         while counter < frames:               
           anim.append(frameList[x+counter*8])
           counter += 1
-        glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
-                    
+        if name2 == 'LIGHTNING': #Quick fix to add color to lightning
+          setTeamColor(spriteSheet,team)
+          glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team)+'_MOVE'+direction, animation.Animation(anim))
+        else:
+          glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
+  
+  #HANDLE CHARACTER ANIMATIONS                  
   elif type == 'char':
     #Set team color first
-    setTeamColor(spriteSheet)
+    setTeamColor(spriteSheet,team)
     #Determine how to handle sprite sheet
     slime = False
     for key in kwargs:
       if key == 'slime':
         slime=True
         frames=kwargs[key]
+    #handle slimes
     if slime:
       anim = []
       for x in range(frames):
@@ -304,7 +323,8 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
       while counter > 0:
         anim.append(frameList[counter])
         counter -= 1
-      glad.resource.registerAnimation('ANIM_'+name2+'_MOVE', animation.Animation(anim))
+      glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team)+'_MOVE', animation.Animation(anim))
+    #handle non-slimes
     else:
       #NONMAGES
       if numFrames < 36: #normal sprites have 24, skeleton has 24+4 for burrow, mages have 36, slimes
@@ -320,21 +340,23 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
           #Walking animations
           x = animationReference[direction]
           anim = createCharWalkAnim(direction, x, frameList)
-          glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
+          glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team)+'_MOVE'+direction, animation.Animation(anim))
+          #glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
           #Attack animation
           attackAnim = []
           #attackAnim.append(anim[0])
           attackAnim.append(anim[1])
-          glad.resource.registerAnimation('ANIM_'+name2+'_ATTACK'+direction, animation.Animation(attackAnim))
+          glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team)+'_ATTACK'+direction, animation.Animation(attackAnim))
+          #glad.resource.registerAnimation('ANIM_'+name2+'_ATTACK'+direction, animation.Animation(attackAnim))
         #Load remaining frames as special animation
         if numFrames > 24: #But not == 36 (that loads mages)
           anim=[]
           for frame in range(24,numFrames):
             anim.append(frameList[frame])
-          glad.resource.registerAnimation('ANIM_'+name2+'_SPECIAL', animation.Animation(anim))
+          glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team)+'_SPECIAL', animation.Animation(anim))
                   
       #MAGES    
-      elif numFrames == 36: #mages have 36 frames
+      elif numFrames == 36: #mages have 36   print 'Team color set to ' + str(team) frames
         animationReference = {'DOWN' : 0,
                               'UP' : 1,
                               'RIGHT' : 2,
@@ -347,7 +369,7 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
           #Walking animations
           x = animationReference[direction]
           anim = createCharWalkAnim(direction, x, frameList)
-          glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
+          glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team)+'_MOVE'+direction, animation.Animation(anim))
           #Attack animations
           attackAnim = []
           #attackAnim.append(frameList[x])
@@ -355,12 +377,12 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
             attackAnim.append(frameList[x+16])
           else:
             attackAnim.append(frameList[x+12])
-          glad.resource.registerAnimation('ANIM_'+name2+'_ATTACK'+direction, animation.Animation(attackAnim))
+          glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team)+'_ATTACK'+direction, animation.Animation(attackAnim))
         #Teleport animation
         anim = []
         for frame in range(12,16):
           anim.append(frameList[frame])
-        glad.resource.registerAnimation('ANIM_'+name2+'_SPECIAL', animation.Animation(anim))
+        glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team)+'_SPECIAL', animation.Animation(anim))
             
   else:
     #THIS IS NOOT COMPLETE, I AM JUST ADDING AS I NEED TO
@@ -406,7 +428,7 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
     
     
 def setTeamColor(spriteSheet, teamNumber=0):
-  """Set the appropriate team color for a sprite sheet based off int teamNumber"""
+  """Set the appropriate team color for a sprite sheet based off int teamNumber (0-13)"""
   spriteSheet.set_palette(glad.palette) #not needed since sprites change to 8bit with right palette
   #Go through each pixel and see if it needs change
   for x in range(spriteSheet.get_width()):
@@ -417,6 +439,7 @@ def setTeamColor(spriteSheet, teamNumber=0):
         if colorToChange == color:
           spriteSheet.set_at((x,y),(glad.palette[(teamNumber*16+40)+(255-counter)]))
         counter += 1
+        
     
 def createCharWalkAnim(direction, x, frameList):
   """Orders the frames of the walking animation. x is the position of the first frame"""

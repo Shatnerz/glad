@@ -298,9 +298,10 @@ class BasicUnit(AbstractObject):
     self.name=name
     self.slime=slime
     if self.slime:
-        self.currentAnimation = 'ANIM_' + self.name +'_MOVE'
+        self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE'
     else:
-        self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
+        self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE' + self.orientationToString()
+        
     self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True)
     
     self.alwaysMove = False
@@ -378,10 +379,10 @@ class BasicUnit(AbstractObject):
     
     #update current animation
     if self.slime:
-      self.currentAnimation = 'ANIM_' + self.name +'_MOVE'
+      self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE'
     else:
       if not self.animateAttack:
-        self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.directionString
+        self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE' + self.directionString
     
     if not self.attacking and not self.shooting:
       #self.animation.setAnimation(self.directionString)####
@@ -412,7 +413,7 @@ class BasicUnit(AbstractObject):
             
         #sets animation to attack and starts timer when animation cannot change
         if not self.slime:
-          self.currentAnimation = 'ANIM_' + self.name + '_ATTACK' + self.directionString       
+          self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE' + self.directionString     
           self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
           self.animationPlayer.currentFrameIndex=0
           self.animateAttack = True
@@ -564,7 +565,7 @@ class SlimeBall(BasicProjectile):
     
     self.speed=75
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='SLIME_BALL', slime=True, speed=self.speed, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='SLIME_BALL_TEAM_'+str(team), slime=True, speed=self.speed, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -711,7 +712,7 @@ class Sparkle(BasicProjectile):
 class Lightning(BasicProjectile):
   def __init__(self, pos, shape, team, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='LIGHTNING', **kwargs)
+    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='LIGHTNING_TEAM_'+str(team), **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
