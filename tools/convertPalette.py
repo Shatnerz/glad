@@ -50,10 +50,10 @@ print pal[247:]
 
 f = open('Gladiator.gpl', 'w')  
 #PRINT PALETTE
-#print>>f, "GIMP Palette"
-#print>>f, "Name: Gladiator"
-#print>>f, "#"
-#x=3 #spacing
-#for color in pal:
-#  print>>f, repr(color[0]).rjust(x), repr(color[1]).rjust(x), repr(color[2]).rjust(x) + "\tUntitled"
+print>>f, "GIMP Palette"
+print>>f, "Name: Gladiator"
+print>>f, "#"
+x=3 #spacing
+for color in pal:
+  print>>f, repr(color[0]).rjust(x), repr(color[1]).rjust(x), repr(color[2]).rjust(x) + "\tUntitled"
   
