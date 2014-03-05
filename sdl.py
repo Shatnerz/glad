@@ -6,6 +6,10 @@ import glad
 
 from util import Vector
 
+import os
+
+from util import cycleList
+
 class App(object):
   """Basic application that handles OS events and provides a rendering
   surface"""
@@ -17,13 +21,21 @@ class App(object):
     pygame.init()    
     
     self.screenSize = (800,600)
-    self.screen = pygame.display.set_mode(self.screenSize)
+    self.screen = pygame.display.set_mode(self.screenSize,pygame.HWPALETTE,8) #set display to 8 bit so color cycling works
     
     self.simpleClock = pygame.time.Clock()
     self.inputInterface = InputInterface()   
     
     self.desiredFPS = 30.0
     self.actualFPS = 30.0
+    
+    #Color Cycling
+    #self.palette = glad.palette #This gives TypeError when setting palette, but should be identical to pulling palette from a surface
+    self.palette = pygame.image.load(os.path.join('resources/sprites/spritesheets','firelem.png')).get_palette()
+    self.palette = list(self.palette)
+    self.screen.set_palette(self.palette) #not sure why but avoids alot of problems
+    self.cycleTime = 0.1
+    self.cycleTimeLeft = self.cycleTime
     
   def getInputInterface(self):
     return self.inputInterface
@@ -41,6 +53,28 @@ class App(object):
   def exit(self):
     self.alive = False
     
+  def cycleColor(self):
+    """Cycles all the needed colors on the display index"""
+    colors = {'ORANGE'  : 224,
+              'BLUE'    : 208}
+    
+    for x in colors:
+      start = colors[x]
+      self.palette[start:start+16] = cycleList(self.palette[start:start+16],-1)
+    
+    pygame.display.set_palette(self.palette)
+    
+  def updateColorCyling(self):
+    
+    time = self.getTimeDelta()
+    
+    self.cycleTimeLeft -= time
+    
+    while self.cycleTimeLeft <= 0:
+      #print 'a'
+      self.cycleColor()
+      self.cycleTimeLeft += self.cycleTime
+    
   def update(self):
         
     #check for an exit event
@@ -52,11 +86,12 @@ class App(object):
       else:
         #update the state of keys, joysticks, etc...
         self.inputInterface.update(event) 
-        
+      
     #limit the game speed
     
     self.simpleClock.tick(self.desiredFPS)    
     self.actualFPS = self.simpleClock.get_fps()
+    self.updateColorCyling()
     
 class Camera(object):
   """Breaks the screen into windows we can draw to. Will be used
@@ -432,7 +467,6 @@ class Renderer(object):
 
       #draw the objects in the world
       world.draw(screen, offset)        
-      
       #draw the overlay on top of the world
       cam.overlay.draw()
       cam.hud.draw()
@@ -453,7 +487,6 @@ class Renderer(object):
       
       Renderer.drawTiles(tileGrid,self.bgSurface,(0,0))
       
-      
     #TODO: increase speed by using area rect to draw only portion of source?
     screen.blit(self.bgSurface, offset)    
     
@@ -473,7 +506,8 @@ class Renderer(object):
         left = Renderer.tileSize[0] * col + offset[0]
         top = Renderer.tileSize[1] * row + offset[1]       
         
-        tile = glad.resource.get(tileName)    
+        tile = glad.resource.get(tileName)
+        #tile = glad.resource.resourceDict['ANIM_FIRE_ELEM_TEAM_4_MOVERIGHT'].frameList[0] #testing
         
         screen.blit(tile, (left,top,
                           Renderer.tileSize[0],

@@ -231,8 +231,6 @@ class AbstractObject(object):
     #update the animation   
     if self.animationPlayer:
       self.animationPlayer.update(time)
-      if self.animationPlayer.colorCycle:
-        self.animationPlayer.updateColorCycle(time)
     
     #update turning clock  
     if self.turning:
@@ -364,11 +362,6 @@ class BasicUnit(AbstractObject):
     if self.life <= 0:
       #self.alive = False
       self.die() #need to implement
-    
-    #Update color cycling
-    if self.animationPlayer:
-      if self.animationPlayer.colorCycle:
-        self.animationPlayer.updateColorCycle(time)
     
     oldAnimation = self.currentAnimation
     
@@ -540,8 +533,6 @@ class Meteor(BasicProjectile):
     #NOTE: must use normalized direction vector!
     #self.vel = moveDir.getNormalized()*self.speed
     
-    self.animationPlayer.colorCycle=True
-    self.animationPlayer.color = 'ORANGE'
     #self.animation = animation.AnimateRangedAttack('meteor', self.directionString)
     #self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True)
 
@@ -736,8 +727,6 @@ class Fireball(BasicProjectile):
     #NOTE: must use normalized direction vector!
     #self.vel = moveDir.getNormalized()*self.speed
     
-    self.animationPlayer.colorCycle=True
-    self.animationPlayer.color = 'BLUE'
     #self.animation = animation.AnimateRangedAttack('fire', self.directionString) 
     
 class Arrow(BasicProjectile):
@@ -968,8 +957,7 @@ class FireElem(BasicUnit):
     #self.animation = animation.AnimateUnit('firelem', self.directionString, self.hue)
     self.alwaysMove = True
     
-    self.animationPlayer.colorCycle=True
-    self.animationPlayer.color = 'ORANGE'
+    self.animationPlayer.timer = 0.1
    
 class Archer(BasicUnit):
   
@@ -991,8 +979,6 @@ class Archmage(BasicUnit):
     
     self.rangedWeapon = BasicRangedAttack(self, 'fireball')
     
-    self.animationPlayer.colorCycle=True
-    self.animationPlayer.color = 'ORANGE'
     #self.animation = animation.AnimateMage('archmage', self.directionString)
 
 class Barbarian(BasicUnit):

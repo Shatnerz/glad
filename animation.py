@@ -10,7 +10,7 @@ from util import Vector
 class AnimationPlayer(object):
   """Handles updating and drawing animations to the screen"""
   
-  def __init__(self, animation, timer, loop=False, cycle=False):
+  def __init__(self, animation, timer, loop=False):
     
     self.animation = animation    
     self.timer = timer
@@ -18,17 +18,6 @@ class AnimationPlayer(object):
     
     self.currentFrameIndex = 0
     self.timeLeft = timer
-    
-    #Color Cycling
-    self.colorCycle = cycle
-    self.color = 'NONE'
-    #grab palette from first frame for palette color cycling
-    if self.animation.frameList[0].get_bitsize() == 8:
-      self.palette = list(self.animation.frameList[0].get_palette())
-    else: self.palette = None
-    #self.cycleTime = 0.2
-    self.cycleTime = 0.25 #3 cycles from source times 13.6msper cycle
-    self.cycleTimeLeft = self.cycleTime
     
   def update(self, time):
     #if the timer is disabled, do nothing
@@ -53,9 +42,6 @@ class AnimationPlayer(object):
           self.currentFrameIndex = 0
         else:
           self.timeLeft = None #disable future updates
-    
-    #if self.colorCycle:      
-    #  self.updateColorCycle(time)
 
   def draw(self, screen, pos):
     
@@ -73,54 +59,6 @@ class AnimationPlayer(object):
     screen.blit(self.animation.frameList[self.currentFrameIndex],
                 pyRect)
     
-  def cycleColors(self):
-    """Cycles the colors between start and end in the index"""
-    #end should be 1 greater than in base.h
-    #Orange: 224 to 232
-    #Blue: 208 to 224
-    #Now cycles in reverse order from what I initially had
-    if self.color == 'ORANGE':
-      start=224
-      end=232
-    elif self.color == 'BLUE':
-      start=208
-      end = 224
-    else:
-      start=0
-      end=0
-      
-    if self.palette: #THE COMMENTED OUT SECTION IS JUST THE SAME CYCLE IN REVERSE    
-      last = self.palette[end-1]
-      var = range(start+1,end)
-      var.sort(reverse=True)
-      for x in var:
-        self.palette[x] = self.palette[x-1]
-      self.palette[start] = last
-      #self.animation.frameList[self.currentFrameIndex].set_palette(self.palette) #set pallet on current frame
-      for frame in self.animation.frameList: #cycle entire animation
-        frame.set_palette(self.palette)
-      #should cycle entire spritesheet but the above works for now
-        
-        
-      #first = self.palette[start]
-      #var = range(start,end-1)
-      #for x in var:
-      #  self.palette[x] = self.palette[x+1]
-      #self.palette[end-1] = first
-      #self.animation.frameList[self.currentFrameIndex].set_palette(self.palette)
-      
-  def updateColorCycle(self, time):
-    """Update the color cycling"""
-    if self.cycleTimeLeft >0:
-      self.cycleTimeLeft -= time
-      if self.cycleTimeLeft <= 0.0:
-        self.cycleTimeLeft += self.cycleTime 
-        self.cycleColors()#Color cycles for oranges
-        if self.cycleTimeLeft < 0:
-          updateColorCycle(time)
-    else:
-      self.cycleTimeLeft += self.cycleTime
-      self.colorCycle()
 
 class Animation(object):
   def __init__(self, frameList):
@@ -303,7 +241,7 @@ class AnimateUnit(Animation):
     
     #load spriteSheet
     self.spriteSheet = glad.resource.get(name)
-    self.mask = glad.resource.get(name+'_mask')
+    #self.mask = glad.resource.get(name+'_mask')
     #set color
     self.hue = hue
     self.colorize()
@@ -407,6 +345,7 @@ class AnimateUnit(Animation):
   
   def colorize(self):
     """Colorize spriteSheet using self.hue and self.mask"""
+    #2/21/2014 - this is from awhile ago. pretty sure i used a linear regression to get the values, this can be improved upon if needed
     #possibly add something to lighten/darken colors to add more team colors
     
     for x in range(self.mask.get_width()):

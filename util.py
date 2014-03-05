@@ -319,4 +319,19 @@ def getCollisionInfo(r1,r1vel,r2,r2vel):
   r1Stops = Rect.collisionStopsMovement(ax,ay,r1vel,bx,by)
   r2Stops = Rect.collisionStopsMovement(bx,by,r2vel,ax,ay)
   
-  return (time,r1Stops,r2Stops)     
+  return (time,r1Stops,r2Stops) 
+
+def cycleList(list,step=1):
+  """Shifts each elements right if step is positive, left if negative"""
+  newList = []
+  r = range(len(list))
+  r.reverse()
+  if step < 0:
+    step = abs(step) + len(list)-2
+  for x in r:
+    i=x-step
+    while i<0:
+      i += len(list)
+    newList.append(list[i])
+  newList.reverse()
+  return newList    
