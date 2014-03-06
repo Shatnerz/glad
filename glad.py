@@ -1,5 +1,7 @@
 # This file keeps track of globals. For convenience for plugin writers
 
+import os, pygame #for hack to get palette that works
+
 app = None
 config = None
 input = None
@@ -7,7 +9,9 @@ renderer = None
 resource = None
 world = None
 
-#Palette from openGlad source code switched to pygame palette (in list and has alpha now)
+#Palette from openGlad source code switched to pygame palette (in lists and has alpha now)
+#this hardcoded palette does not work with color cycling
+#throws a TypeError even though it is identical to the working palette taken from firelem
 palette = [[0, 0, 0, 255], [32, 32, 32, 255], [64, 64, 64, 255], [96, 96, 96, 255], [128, 128, 128, 255], [160, 160, 160, 255], 
            [192, 192, 192, 255], [224, 224, 224, 255], [4, 4, 4, 255], [36, 36, 36, 255], [68, 68, 68, 255], [100, 100, 100, 255], 
            [132, 132, 132, 255], [164, 164, 164, 255], [196, 196, 196, 255], [228, 228, 228, 255], [0, 0, 0, 255], [60, 60, 60, 255], 
@@ -52,3 +56,5 @@ palette = [[0, 0, 0, 255], [32, 32, 32, 255], [64, 64, 64, 255], [96, 96, 96, 25
            [188, 112, 96, 255], [172, 96, 80, 255], [224, 140, 92, 255], [208, 128, 96, 255], [192, 120, 88, 255], [176, 108, 76, 255], 
            [112, 72, 72, 255], [120, 80, 80, 255], [128, 88, 88, 255], [136, 96, 96, 255], [144, 104, 104, 255], [152, 112, 112, 255], 
            [160, 120, 120, 255], [168, 128, 128, 255]]
+#Takes palette from firelem - same as above palette (except in tuples), but works with color cycling for some reason
+palette = pygame.image.load(os.path.join('resources/sprites/spritesheets','firelem.png')).get_palette()

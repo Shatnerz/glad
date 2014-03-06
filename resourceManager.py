@@ -429,11 +429,12 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
     
 def setTeamColor(spriteSheet, teamNumber=0):
   """Set the appropriate team color for a sprite sheet based off int teamNumber (0-13)"""
-  spriteSheet.set_palette(glad.palette) #not needed since sprites change to 8bit with right palette
+  #This could probably be done faster by changing the palette for the spritesheet
+  #spriteSheet.set_palette(glad.palette) #not needed since sprites change to 8bit with right palette
   #Go through each pixel and see if it needs change
   for x in range(spriteSheet.get_width()):
     for y in range (spriteSheet.get_height()):
-      color = list(spriteSheet.get_at((x,y)))
+      color = spriteSheet.get_at((x,y))
       counter=248
       for colorToChange in glad.palette[248:]:
         if colorToChange == color:
@@ -510,8 +511,8 @@ def registerGladCharacters():
     glad.resource.register(name, spriteFullname)  
     transColor = glad.resource.resourceDict[name].data.get_at((0,1))
     glad.resource.resourceDict[name].data.set_colorkey(transColor)
-    maskFullname = os.path.join(titleFolder+'/masks', filename+'_mask.png')
-    glad.resource.register(name+'_mask', maskFullname)
+    #maskFullname = os.path.join(titleFolder+'/masks', filename+'_mask.png')
+    #glad.resource.register(name+'_mask', maskFullname)
     
     #try:
     #  image = pygame.image.load(fullname).convert()
@@ -544,7 +545,7 @@ def registerGladTiles():
   #TODO: in future, register automatically, not manually
   
   
-  tileFolder = 'resources/images/' 
+  tileFolder = 'resources/tiles/' 
   
   tileSize = (32,32)
   

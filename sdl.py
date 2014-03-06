@@ -30,10 +30,9 @@ class App(object):
     self.actualFPS = 30.0
     
     #Color Cycling
-    #self.palette = glad.palette #This gives TypeError when setting palette, but should be identical to pulling palette from a surface
-    self.palette = pygame.image.load(os.path.join('resources/sprites/spritesheets','firelem.png')).get_palette()
-    self.palette = list(self.palette)
-    self.screen.set_palette(self.palette) #not sure why but avoids alot of problems
+    self.palette = glad.palette
+    self.palette=[list(i) for i in self.palette]
+    self.screen.set_palette(self.palette) #not sure why but avoids problem with colors
     self.cycleTime = 0.1
     self.cycleTimeLeft = self.cycleTime
     
