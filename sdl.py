@@ -452,7 +452,6 @@ class Renderer(object):
       
       #first 2 coords are the pos
       offset = Vector(cam.worldRect[:2])
-      
       offset *= -1      
       
       screen = cam.screen      
@@ -482,7 +481,7 @@ class Renderer(object):
       
       w, h = Renderer.tileSize
       
-      self.bgSurface = pygame.Surface((w * len(tileGrid[0]),h*len(tileGrid)))
+      self.bgSurface = pygame.Surface((w * len(tileGrid[0]),h*len(tileGrid))).convert()
       
       Renderer.drawTiles(tileGrid,self.bgSurface,(0,0))
       
