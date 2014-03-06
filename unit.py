@@ -286,6 +286,9 @@ class BasicUnit(AbstractObject):
     self.rangedWeapon = None
     self.meleeWeapon = None
     
+    self.rangedDamage = 10
+    self.meleeDamage = 10
+    
     self.moveSpeed = 200
     
     #By default, have units face 'right'
@@ -350,6 +353,10 @@ class BasicUnit(AbstractObject):
       #self.animation.rangedAttack(self.directionString)
     else:
       return False
+    
+  def rangedHit(self, target):
+    target.life -= self.rangedDamage
+    print target, ' Remaning life: ', target.life
     
   def die(self):
     """Kill unit and handle his death"""
@@ -457,13 +464,13 @@ class BasicUnit(AbstractObject):
     self.attacking = False
 
 class BasicProjectile(AbstractObject):
-  def __init__(self, pos, shape, team, moveDir, name='TEST', spin=False, speed=400, slime=False, **kwargs): #can probably get rid of spin and slime and use **kwargs, but not sure how
+  def __init__(self, pos, shape, owner, moveDir, name='TEST', spin=False, speed=400, slime=False, **kwargs): #can probably get rid of spin and slime and use **kwargs, but not sure how
     
-    AbstractObject.__init__(self, pos, shape, team, moveDir, **kwargs)
+    AbstractObject.__init__(self, pos, shape, owner.team, moveDir, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
-    self.owner = None
+    self.owner = owner
     
     self.speed = speed
     
@@ -517,14 +524,15 @@ class BasicProjectile(AbstractObject):
   
   def onCollide(self, enemy):
     #should only happen with units, but may want to chec if unit
-    enemy.life -= self.damage
+    #enemy.life -= self.damage
+    self.owner.rangedHit(enemy)
     self.alive = False
-    print enemy.life
+    #print enemy.life
   
 class Meteor(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='METEOR', **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='METEOR', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -537,9 +545,9 @@ class Meteor(BasicProjectile):
     #self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True)
 
 class Bone(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='BONE', spin=True, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='BONE', spin=True, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -552,11 +560,11 @@ class Bone(BasicProjectile):
     #self.animation = animation.AnimateSpinningAttack('bone1', self.directionString)
     
 class SlimeBall(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, hue=0, **kwargs): #hue was used to colorize
+  def __init__(self, pos, shape, owner, moveDir, hue=0, **kwargs): #hue was used to colorize
     
     self.speed=75
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='SLIME_BALL_TEAM_'+str(team), slime=True, speed=self.speed, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='SLIME_BALL_TEAM_'+str(owner.team), slime=True, speed=self.speed, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -570,9 +578,9 @@ class SlimeBall(BasicProjectile):
     #self.animation = animation.AnimateSlimeBall('sl_ball', self.directionString, self.hue, frames = 12)
     
 class Knife(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='KNIFE', spin=True, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='KNIFE', spin=True, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -586,8 +594,8 @@ class Knife(BasicProjectile):
     
 class MagicKnife(Knife):
   """Knife that returns to owner"""
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
-    Knife.__init__(self, pos, shape, team, moveDir)
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
+    Knife.__init__(self, pos, shape, owner, moveDir)
     
     self.returning = False
     self.owner = None
@@ -641,9 +649,9 @@ class MagicKnife(Knife):
       self.alive = True
  
 class Boulder(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='BOULDER', spin=True, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='BOULDER', spin=True, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -656,9 +664,9 @@ class Boulder(BasicProjectile):
     #self.animation = animation.AnimateSpinningAttack('boulder1', self.directionString, frames = 1)   
 
 class Rock(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='ROCK', **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='ROCK', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -671,9 +679,9 @@ class Rock(BasicProjectile):
     #self.animation = animation.AnimateRangedAttack('rock', self.directionString, frames = 12)    
 
 class Hammer(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='HAMMER', **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='HAMMER', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -686,9 +694,9 @@ class Hammer(BasicProjectile):
     #self.animation = animation.AnimateRangedAttack('hammer', self.directionString, frames = 12)
 
 class Sparkle(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='SPARKLE', spin=True, **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='SPARKLE', spin=True, **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -701,9 +709,9 @@ class Sparkle(BasicProjectile):
     #self.animation = animation.AnimateSpinningAttack('sparkle', self.directionString, frames = 12)
 
 class Lightning(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='LIGHTNING_TEAM_'+str(team), **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='LIGHTNING_TEAM_'+str(owner.team), **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -716,9 +724,9 @@ class Lightning(BasicProjectile):
     #self.animation = animation.AnimateRangedAttack('lightnin', self.directionString)
 
 class Fireball(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='FIREBALL', **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='FIREBALL', **kwargs)
     
     #self.collisionType = 'PROJECTILE' #NEED TO COMMENT OUT FOR EVERY OTHER PROJECTILE TOO
     
@@ -730,9 +738,9 @@ class Fireball(BasicProjectile):
     #self.animation = animation.AnimateRangedAttack('fire', self.directionString) 
     
 class Arrow(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='ARROW', **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='ARROW', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -745,9 +753,9 @@ class Arrow(BasicProjectile):
     #self.animation = animation.AnimateRangedAttack('arrow', self.directionString, frames = 12)
 
 class FireArrow(BasicProjectile):
-  def __init__(self, pos, shape, team, moveDir, **kwargs):
+  def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
-    BasicProjectile.__init__(self, pos, shape, team, moveDir, name='FIRE_ARROW', **kwargs)
+    BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='FIRE_ARROW', **kwargs)
     
     self.collisionType = 'PROJECTILE'
     
@@ -796,17 +804,17 @@ class BasicRangedAttack(object):
     
     projectilePos = pos + orientation.getNormalized()*gap
     
-    dict = {'rock': Rock(projectilePos,projectileShape,team,orientation),
-            'arrow': Arrow(projectilePos,projectileShape,team,orientation),
-            'firearrow': FireArrow(projectilePos,projectileShape,team,orientation),
-            'fireball': Fireball(projectilePos,projectileShape,team,orientation),
-            'hammer': Hammer(projectilePos,projectileShape,team,orientation),
-            'lightning': Lightning(projectilePos,projectileShape,team,orientation),
-            'meteor': Meteor(projectilePos,projectileShape,team,orientation),
-            'bone' : Bone(projectilePos,projectileShape,team,orientation),
-            'knife' : Knife(projectilePos,projectileShape,team,orientation),
-            'sparkle' : Sparkle(projectilePos,projectileShape,team,orientation),
-            'boulder' : Boulder(projectilePos,projectileShape,team,orientation)}
+    dict = {'rock': Rock(projectilePos,projectileShape,self.owner,orientation),
+            'arrow': Arrow(projectilePos,projectileShape,self.owner,orientation),
+            'firearrow': FireArrow(projectilePos,projectileShape,self.owner,orientation),
+            'fireball': Fireball(projectilePos,projectileShape,self.owner,orientation),
+            'hammer': Hammer(projectilePos,projectileShape,self.owner,orientation),
+            'lightning': Lightning(projectilePos,projectileShape,self.owner,orientation),
+            'meteor': Meteor(projectilePos,projectileShape,self.owner,orientation),
+            'bone' : Bone(projectilePos,projectileShape,self.owner,orientation),
+            'knife' : Knife(projectilePos,projectileShape,self.owner,orientation),
+            'sparkle' : Sparkle(projectilePos,projectileShape,self.owner,orientation),
+            'boulder' : Boulder(projectilePos,projectileShape,self.owner,orientation)}
     proj = dict[self.type]
     proj.owner = self.owner
     
@@ -832,9 +840,9 @@ class BasicRangedAttack(object):
   
 class SlimeAttack(BasicRangedAttack):
   
-  def __init__(self, hue, size=(24, 24), type=None):
-    BasicRangedAttack.__init__(self, type, size=(24,24))
-    self.hue = hue
+  def __init__(self, owner, size=(24, 24), type=None):
+    BasicRangedAttack.__init__(self, owner, type, size=(24,24))
+    self.hue = owner.hue
     
   def attack(self, pos, gap, orientation,team):
     
@@ -852,7 +860,7 @@ class SlimeAttack(BasicRangedAttack):
     
     projectilePos = pos + orientation.getNormalized()*gap
     
-    proj = SlimeBall(projectilePos,projectileShape,team,orientation,self.hue)
+    proj = SlimeBall(projectilePos,projectileShape,self.owner,orientation,self.hue)
     #proj = Rock(projectilePos,projectileShape,team,orientation) 
     
     glad.world.objectList.append(proj)
@@ -862,21 +870,23 @@ class SlimeAttack(BasicRangedAttack):
     
     return True  
   
-class KnifeThrower(object):
+class KnifeThrower(BasicRangedAttack):
   """Spawns knives"""
   
-  def __init__(self, owner):
+  def __init__(self, owner, maxKnives = 3):
+    
+    BasicRangedAttack.__init__(self, owner, 'knife')
     
     #temporary defaults for now    
-    self.maxKnives = 3
-    self.knivesAvailable = 3
+    self.maxKnives = maxKnives
+    self.knivesAvailable = self.maxKnives
     
-    self.nextAttackTimer = 0.0
-    self.attackCooldown = 0.4
+    #self.nextAttackTimer = 0.0
+    #self.attackCooldown = 0.4
     
     self.knives = [] #list of knives
     
-    self.owner = owner
+    #self.owner = owner
     
   def update(self, time):
     
@@ -913,7 +923,7 @@ class KnifeThrower(object):
     #print orientation.getNormalized() * gap
         
     #proj = BasicProjectile(knifePos,knifeShape,team,orientation)
-    proj = MagicKnife(knifePos,knifeShape,team,orientation)
+    proj = MagicKnife(knifePos,knifeShape,self.owner,orientation)
     proj.owner = self.owner #Set owner so it can return and keep track of unit
     
     self.knives.append(proj)
@@ -922,7 +932,6 @@ class KnifeThrower(object):
     
     #play sound effect
     glad.resource.resourceDict['fwip'].play()
-    
     return True
 #   TODO: spawn knife here
     
@@ -1111,7 +1120,7 @@ class SmallSlime(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='SMALL_SLIME', slime=True, **kwargs)
     
-    self.rangedWeapon = SlimeAttack(self.hue)
+    self.rangedWeapon = SlimeAttack(self)
     
     self.alwaysMove = True
     
@@ -1124,7 +1133,7 @@ class MediumSlime(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='MEDIUM_SLIME', slime=True, **kwargs)
     
-    self.rangedWeapon = SlimeAttack(self.hue)
+    self.rangedWeapon = SlimeAttack(self)
     
     self.alwaysMove = True
     
@@ -1137,7 +1146,7 @@ class BigSlime(BasicUnit):
     
     BasicUnit.__init__(self, pos, shape, name='BIG_SLIME', slime=True, **kwargs)
     
-    self.rangedWeapon = SlimeAttack(self.hue)
+    self.rangedWeapon = SlimeAttack(self)
     
     self.alwaysMove = True
     
