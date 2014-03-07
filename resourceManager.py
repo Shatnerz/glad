@@ -58,6 +58,7 @@ class SoundResource(AbstractResource):
   def play(self):
     """Play the sound"""
     self.data.play()
+    self.data.set_volume(1)
     
 class ResourceManager(object):
   """Keep track of all the images we need and whether or not they are
@@ -344,7 +345,7 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
           #glad.resource.registerAnimation('ANIM_'+name2+'_MOVE'+direction, animation.Animation(anim))
           #Attack animation
           attackAnim = []
-          #attackAnim.append(anim[0])
+          attackAnim.append(anim[0])
           attackAnim.append(anim[1])
           glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team)+'_ATTACK'+direction, animation.Animation(attackAnim))
           #glad.resource.registerAnimation('ANIM_'+name2+'_ATTACK'+direction, animation.Animation(attackAnim))
@@ -372,7 +373,7 @@ def createGladAnimations(name, name2, numFrames=0, type='char', **kwargs): #note
           glad.resource.registerAnimation('ANIM_'+name2+'_TEAM_'+str(team)+'_MOVE'+direction, animation.Animation(anim))
           #Attack animations
           attackAnim = []
-          #attackAnim.append(frameList[x])
+          attackAnim.append(frameList[x])
           if x<4:
             attackAnim.append(frameList[x+16])
           else:

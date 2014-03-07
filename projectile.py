@@ -24,7 +24,7 @@ class BasicProjectile(AbstractObject):
     self.orientation = Vector(moveDir)
     self.directionString = self.orientationToString()
     
-    self.range = 400 #arbitrary range in pixels for now, not in src they do line of sight * step size
+    self.range = self.owner.range #arbitrary range in pixels for now, not in src they do line of sight * step size
     self.distance = 0 #distance traveled
     
     #Setup random waver for the projectile

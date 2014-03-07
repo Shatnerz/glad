@@ -18,6 +18,7 @@ class App(object):
     
     self.alive = True    #keep the app alive
     
+    #insert pygame.mixer.pre_init() here if needed
     pygame.init()    
     
     self.screenSize = (800,600)
