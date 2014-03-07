@@ -14,8 +14,6 @@ class Corpse(AbstractObject):
     shape = Rect.createAtOrigin(32, 32)
     AbstractObject.__init__(self, pos, shape, **kwargs)
     
-    glad.resource.resourceDict['die1'].play() #just testing sound out again
-    
     self.owner = self #keep a copy of who the corpse belongs to
     
     self.collisionType = 'OBJ' #should add collision type for corpses, keys, and other stuff you can walk over
@@ -48,6 +46,8 @@ class BasicUnit(AbstractObject):
     self.rangedDamage = 10
     self.meleeDamage = 10
     
+    self.range = 400 #range for ranged weapon (in pixels)
+    
     self.moveSpeed = 200
     
     #By default, have units face 'right'
@@ -61,8 +61,9 @@ class BasicUnit(AbstractObject):
         self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE'
     else:
         self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE' + self.orientationToString()
-        
-    self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True)
+    
+    self.animationTime = 0.2    
+    self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], self.animationTime , True)
     
     self.alwaysMove = False
     
@@ -72,27 +73,18 @@ class BasicUnit(AbstractObject):
     #Attacking
     self.attacking = False
     #attack animation
-    self.shooting = False #think of better name
     self.attackTime = 0.1 #time attack frame is up
     self.attackTimer = 0
-    
-    self.hue = hue
-    
-    #Wasn't sure how sync sync attack animation with attack well
-    #this was the easiest thing i could think of
-    #may be able to change Animation or AnimationPLayer for better method
     self.animateAttack = False
-    self.animateAttackTimer = 0
+    
+    self.hue = hue #I thnk this is from my old method of team coloring - can probably be removed
+
     
   def attack(self):
-    #self.animation.rangedAttack(self.orientationToString())
-    #NEED TO SET ATTACK ANIMATION WHEN ATTACKING
-    #ALSO SYNC IT WITH THE ATTACKS (during attack - frame 1, between attacks - frame 2)
-    #self.rangedAttack()
     self.attacking = True
-    pass
     
   def meleeAttack(self, target):
+    print 'Melee'
     pass
   
   def rangedAttack(self):
@@ -115,113 +107,69 @@ class BasicUnit(AbstractObject):
     
   def rangedHit(self, target):
     target.life -= self.rangedDamage
+    #update stats here
     print target, ' Remaning life: ', target.life
     
   def die(self):
     """Kill unit and handle his death"""
     self.alive = False
+    glad.resource.resourceDict['die1'].play() #just testing sound out again
     corpse = Corpse(self.pos, self)
     glad.world.objectList.append(corpse)
   
   def update(self, time):
     #update everything needed for a basic unit, sloppy at the moment
     if self.life <= 0:
-      #self.alive = False
-      self.die() #need to implement
-    
-    oldAnimation = self.currentAnimation
+      self.die() 
     
     if self.rangedWeapon:
       self.rangedWeapon.update(time)
+      
+    #update turnTime
+    if self.turning:
+      self.turnTimer += time
+      
+    oldAnimation = self.currentAnimation
     
-    self.directionString = self.orientationToString()
+    self.directionString = self.orientationToString()   
     
     #update current animation
     if self.slime:
       self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE'
     else:
-      if not self.animateAttack:
-        self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE' + self.directionString
-    
-    if not self.attacking and not self.shooting:
-      #self.animation.setAnimation(self.directionString)####
-      pass
+      self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE' + self.directionString
       
-    if self.shooting:
-      self.attackTimer += time
-      if self.attackTimer >= self.attackTime:
-        self.attackTimer = 0
-        #self.animation.setAnimation(self.directionString)###
-        self.shooting = False
-        
-    #must be better way to sync attack and animation
-    #without this animation is only on for 1 loop
-    if self.animateAttack:
-      cooldown = 0.01 ##should be less then weapon cooldown so it doesnt stick
-      if self.animateAttackTimer >= cooldown:
-        self.animateAttack = False
-      else:
-        self.animateAttackTimer += time
-    
     if self.attacking:
-      #check if melee or ranged
-      #use ranged since melee isnt really set up
-      if self.rangedAttack():
-        self.shooting = True
-        self.attackTimer = 0 #reset attack timer
-            
-        #sets animation to attack and starts timer when animation cannot change
-        if not self.slime:
-          self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_MOVE' + self.directionString     
-          self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
-          self.animationPlayer.currentFrameIndex=0
-          self.animateAttack = True
-          self.animateAttackTimer = 0
-            
+      #Check if melee or ranged
+      #Just assume ranged for now
+      if self.rangedAttack(): #fires if ready
         if not self.alwaysMove:
-          #self.animation.rangedAttack(self.directionString)#######
-          pass
-    
-    #update turnTime
-    if self.turning:
-      #self.animation.setAnimation(self.directionString)###pass
-      self.turnTimer += time
+          #dont animate attacking for firelems etc. doesnt look smooth
+          self.animateAttack = True
       
-    if self.currentAnimation != oldAnimation and not self.animateAttack: #only change if not the same and not animating an attack
+    if self.animateAttack:
+      self.currentAnimation = 'ANIM_' + self.name + '_TEAM_' + str(self.team) +'_ATTACK' + self.directionString
+      self.animationPlayer.timer = self.attackTime
+      if self.animationPlayer.currentFrameIndex == 1: #Stop after reaching last frame
+        self.animateAttack=False
+        self.animationPlayer.timer = self.animationTime   
+    
+    if self.currentAnimation != oldAnimation: #only change if not the same
       self.animationPlayer.currentFrameIndex=0 #removes any index errors
       self.animationPlayer.animation = glad.resource.resourceDict[self.currentAnimation]
-    #Animate only if moving - code farther below was a little sloppy
-    if not self.alwaysMove:
-      if self.vel[0] != 0 or self.vel[1] != 0: #ADD SOMETHING HERE TO UPDATE ANIMATION WHILE ATTACKING
-        if self.animationPlayer:
-          self.animationPlayer.update(time)
-    else:
+      
+    #Animate only if moving or animating attack
+    if self.alwaysMove or self.animateAttack:
       if self.animationPlayer:
         self.animationPlayer.update(time)
-    
-    ################This chunk does nothing now, but helped animate before############################    
-    #animate only if moving and not shooting
-    if not self.alwaysMove:
+    elif not self.alwaysMove:
       if self.vel[0] != 0 or self.vel[1] != 0:
-        if self.attacking and not self.shooting:
-          #self.animation.setAnimation(self.directionString)####
-          pass
-          #if self.animation:####
-            #self.animation.update(time)####
-        if not self.attacking and not self.shooting:
-          #self.animation.setAnimation(self.directionString)####
-          pass
-          #if self.animation:
-           # self.animation.update(time)
-    else:
-      #if self.animation:
-      # self.animation.update(time)
-      pass
-   #############################################################################################
+        if self.animationPlayer:
+          self.animationPlayer.update(time)
     
-    #Turn off attacking unless its called in the next loop      
+    #Turn off attacking    
     self.attacking = False
-
+  
     
 class Soldier(BasicUnit):
   
@@ -235,8 +183,7 @@ class Soldier(BasicUnit):
     
     #self.rangedWeapon = BasicRangedAttack('knife',size=(12,12))
     self.rangedWeapon = KnifeThrower(self)
-    
-    
+        
 class FireElem(BasicUnit):
   #based off sample soldier for the start
   def __init__(self, pos, **kwargs):
@@ -259,8 +206,7 @@ class Archer(BasicUnit):
     BasicUnit.__init__(self, pos, shape, name='ARCHER', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack(self, 'arrow', size=(14,14))
-    
-    
+      
 class Archmage(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -270,7 +216,6 @@ class Archmage(BasicUnit):
     
     self.rangedWeapon = BasicRangedAttack(self, 'fireball')
     
-
 class Barbarian(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -279,8 +224,7 @@ class Barbarian(BasicUnit):
     BasicUnit.__init__(self, pos, shape, name='BARBARIAN', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack(self, 'hammer', size=(12,12))
-    
-    
+        
 class Cleric(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -289,8 +233,7 @@ class Cleric(BasicUnit):
     BasicUnit.__init__(self, pos, shape, name='CLERIC', **kwargs)
     
     self.rangedWeapon = KnifeThrower(self)
-    
-    
+       
 class Druid(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -299,8 +242,7 @@ class Druid(BasicUnit):
     BasicUnit.__init__(self, pos, shape, name='DRUID', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack(self, 'lightning')
-    
-    
+       
 class Elf(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -309,8 +251,7 @@ class Elf(BasicUnit):
     BasicUnit.__init__(self, pos, shape, name='ELF', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack(self, 'rock',size=(12,12))
-    
-    
+       
 class Faerie(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -341,8 +282,7 @@ class Golem(BasicUnit):
     BasicUnit.__init__(self, pos, shape, name='GOLEM', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack(self, 'boulder', size=(26,26))
-    
-    
+       
 class Mage(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -352,7 +292,6 @@ class Mage(BasicUnit):
     
     self.rangedWeapon = BasicRangedAttack(self, 'fireball')
     
-
 class Orc(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -361,8 +300,7 @@ class Orc(BasicUnit):
     BasicUnit.__init__(self, pos, shape, name='ORC', **kwargs)
     
     self.rangedWeapon = KnifeThrower(self)
-    
-    
+        
 class OrcCaptain(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -371,8 +309,7 @@ class OrcCaptain(BasicUnit):
     BasicUnit.__init__(self, pos, shape, name='ORC_CAPTAIN', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack(self, 'knife', size=(12,12))
-     
-    
+        
 class Skeleton(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -381,8 +318,7 @@ class Skeleton(BasicUnit):
     BasicUnit.__init__(self, pos, shape, name='SKELETON', **kwargs)
     
     self.rangedWeapon = BasicRangedAttack(self, 'bone', size=(14,14))
-    
-    
+       
 class SmallSlime(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -394,7 +330,6 @@ class SmallSlime(BasicUnit):
     
     self.alwaysMove = True
     
-
 class MediumSlime(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -405,8 +340,7 @@ class MediumSlime(BasicUnit):
     self.rangedWeapon = SlimeAttack(self)
     
     self.alwaysMove = True
-    
-    
+       
 class BigSlime(BasicUnit):
   
   def __init__(self, pos, **kwargs):
@@ -417,8 +351,7 @@ class BigSlime(BasicUnit):
     self.rangedWeapon = SlimeAttack(self)
     
     self.alwaysMove = True
-    
-    
+       
 class Thief(BasicUnit):
   
   def __init__(self, pos, **kwargs):
