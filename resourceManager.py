@@ -55,10 +55,9 @@ class SoundResource(AbstractResource):
     
     self.data = sound
     
-  def play(self):
+  def play(self, pos):
     """Play the sound"""
-    self.data.play()
-    self.data.set_volume(1)
+    glad.sound.play(self.data, pos)
     
 class ResourceManager(object):
   """Keep track of all the images we need and whether or not they are

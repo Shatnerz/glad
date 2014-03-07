@@ -8,6 +8,7 @@ input = None
 renderer = None
 resource = None
 world = None
+sound = None
 
 #Palette from openGlad source code switched to pygame palette (in lists and has alpha now)
 #this hardcoded palette does not work with color cycling

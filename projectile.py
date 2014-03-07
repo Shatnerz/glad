@@ -125,13 +125,13 @@ class BasicRangedAttack(object):
     #play sound - if I do this when the projectile is created, it plays it for each entry in the above dict
     #need to play sound for each attack, right now just this, knifeThrower, and slimeAttack
     if self.type == "arrow":
-      glad.resource.resourceDict['twang'].play()
+      glad.resource.resourceDict['twang'].play(self.owner.pos)
     elif self.type == "sparkle":
-      glad.resource.resourceDict['faerie1'].play()
+      glad.resource.resourceDict['faerie1'].play(self.owner.pos)
     elif self.type == "lightning":
-      glad.resource.resourceDict['bolt1'].play()
+      glad.resource.resourceDict['bolt1'].play(self.owner.pos)
     else:
-      glad.resource.resourceDict['fwip'].play() #Just testing sound, should be for only stuff on screen or nearby,
+      glad.resource.resourceDict['fwip'].play(self.owner.pos) #Just testing sound, should be for only stuff on screen or nearby,
     
     #proj = BasicProjectile(projectilePos, projectileShape, team, orientation) #basic projectile should be default
     #proj = Fireball(projectilePos,projectileShape,team,orientation)
@@ -169,7 +169,7 @@ class SlimeAttack(BasicRangedAttack):
     glad.world.objectList.append(proj)
     
     #play sound effect
-    glad.resource.resourceDict['fwip'].play()
+    glad.resource.resourceDict['fwip'].play(self.owner.pos)
     
     return True  
   
@@ -234,7 +234,7 @@ class KnifeThrower(BasicRangedAttack):
     glad.world.objectList.append(proj)
     
     #play sound effect
-    glad.resource.resourceDict['fwip'].play()
+    glad.resource.resourceDict['fwip'].play(self.owner.pos)
     return True
 #   TODO: spawn knife here
     

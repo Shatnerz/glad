@@ -87,7 +87,13 @@ class Vector(object):
     data = [x/norm for x in self.data]
     
     return Vector(data)
-    
+  
+  def getMagnitude(self):
+    """Returns magnitude of vector"""
+    sum = 0
+    for x in self.data:
+      sum += x**2
+    return sum**0.5
 
 class Rect(object):
   """Basic rectangle class. Contains overlap checking"""
@@ -334,4 +340,13 @@ def cycleList(list,step=1):
       i += len(list)
     newList.append(list[i])
   newList.reverse()
-  return newList    
+  return newList 
+
+def dotProduct(vec1, vec2):
+  if vec1.__len__() != vec2.__len__():
+    print "Dot product vectors not of same length"
+  else:
+    sum=0
+    for x in range(vec1.__len__()):
+      sum += vec1[x]*vec2[x]
+    return sum
