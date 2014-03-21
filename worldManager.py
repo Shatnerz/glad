@@ -4,7 +4,7 @@ import glad
 
 #from multiMethod import multimethod
 
-import unit
+import unit, projectile
 
 from util import Vector,Rect,getCollisionInfo,getOverlap
 
@@ -366,7 +366,12 @@ class CollisionGrid(object):
   def getObjectsInCell(self,row,col):
     pass
       
-      
+class TurretController(object):
+  """Unit test controller that constantly fires"""
+  def __init__(self, target):
+    self.target = target
+  def process(self):
+    self.target.attack()  
 
 class PlayerController(object):
   """Manipulate an object via input events""" 
@@ -407,7 +412,7 @@ class PlayerController(object):
     
     #I was bored
     if glad.input.isKeyTapped(pygame.K_q):
-      glad.resource.resourceDict['yo'].play()
+      glad.resource.resourceDict['yo'].play(self.target.pos)
     #Quick hack to switch characters
     if glad.input.isKeyTapped(pygame.K_TAB):
       if glad.world.objectList.__contains__(self.target):
@@ -572,30 +577,50 @@ class TestWorld1(AbstractWorld):
     self.createTestGrid((40,40))
     
     #add 1 soldier for testing
-    sold1 = unit.FireElem(pos=(100,100),team=1)
-    #sold1 = unit.BigSlime(pos=(100,100),team=1)
+    sold1 = unit.Soldier(pos=(100,100),team=0)
+    sold1.rangedWeapon = projectile.KnifeThrower(sold1,10)
+    #sold1.rangedWeapon = unit.SlimeAttack(sold1,sold1.hue)
+    #sold1.rangedWeapon.knivesAvailable = 15
+    #sold1.animationPlayer.timer=0.1
+    #sold1 = unit.SmallSlime(pos=(100,100),team=1)
     #sold1 = unit.Golem(pos=(100,100),team=1)
     #sold1 = unit.TestWalker(pos=(100,100),team=1)
     
-    sold1.rangedWeapon.attackCooldown=.1
+    sold1.rangedWeapon.attackCooldown=.2
     
-    sold2 = unit.Soldier(pos=(200,200), team=2)
-    sold3 = unit.Soldier(pos=(200, 100), team=1)
+    sold2 = unit.Soldier(pos=(200,200), team=1)
+    sold3 = unit.FireElem(pos=(200, 100), team=0)
+    
+    #sold4 = unit.FireElem(pos=(300, 100), team=0)
+    #sold5 = unit.FireElem(pos=(400, 100), team=0)
+    #sold6 = unit.FireElem(pos=(500, 100), team=0)
+    #sold7 = unit.FireElem(pos=(200, 300), team=0)
+    #sold8 = unit.FireElem(pos=(200, 400), team=0)
+    #sold9 = unit.FireElem(pos=(200, 500), team=0)
     
     self.objectList.append(sold1)
     self.objectList.append(sold2)
     self.objectList.append(sold3)
     
+    #self.objectList.append(sold4)
+    #self.objectList.append(sold5)
+    #self.objectList.append(sold6)
+    #self.objectList.append(sold7)
+    #self.objectList.append(sold8)
+    #self.objectList.append(sold9)
+    
     #set the player to control this unit
     pc1 = PlayerController(sold1)
     self.controllerList.append(pc1)
+    tc1 = TurretController(sold2)
+    self.controllerList.append(tc1)
                 
     #set the camera to follow this unit
     cam1 = glad.renderer.cameraList[0]
     cam1.followObject(sold1)
     
     #HUD testing
-    print cam1.overlay
+    #print cam1.overlay
 
 
 """
