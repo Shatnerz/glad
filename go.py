@@ -8,13 +8,13 @@ import config
 import sdl
 import resourceManager
 import worldManager
+import soundManager
 
 if __name__ == '__main__':
   #Setup logging
   logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(funcName)s: %(message)s')
 
   #Setup our application
-  
   glad.config = config.BasicConfig('config.cfg')
   app = glad.app = sdl.App()
   glad.input = app.getInputInterface() 
@@ -32,6 +32,10 @@ if __name__ == '__main__':
   #Load a test world
   world = glad.world = worldManager.TestWorld1()
   
+  sound = glad.sound = soundManager.SoundManager()
+  
+  glad.sound.playMusic()
+  
     
      
   while app.isRunning():
@@ -43,3 +47,5 @@ if __name__ == '__main__':
     world.update(timeDelta)
     
     renderer.draw(world)
+    
+    sound.update()

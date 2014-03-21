@@ -41,6 +41,8 @@ class BasicProjectile(AbstractObject):
     #Add waver to velocity vector
     self.vel += waverVector
     
+    self.sound = glad.resource.resourceDict['fwip']
+    
     self.name=name
     if self.name == 'TEST':
       anim = animation.TestAnimation(size = shape.getSize())
@@ -53,6 +55,7 @@ class BasicProjectile(AbstractObject):
       else:
         self.currentAnimation = 'ANIM_' + self.name +'_MOVE' + self.orientationToString()
       self.animationPlayer = animation.AnimationPlayer(glad.resource.resourceDict[self.currentAnimation], 0.2, True) #freezes if false
+      
   def update(self,time):
     #Update as abstract object
     AbstractObject.update(self,time)
@@ -124,14 +127,17 @@ class BasicRangedAttack(object):
     
     #play sound - if I do this when the projectile is created, it plays it for each entry in the above dict
     #need to play sound for each attack, right now just this, knifeThrower, and slimeAttack
-    if self.type == "arrow":
-      glad.resource.resourceDict['twang'].play(self.owner.pos)
-    elif self.type == "sparkle":
-      glad.resource.resourceDict['faerie1'].play(self.owner.pos)
-    elif self.type == "lightning":
-      glad.resource.resourceDict['bolt1'].play(self.owner.pos)
-    else:
-      glad.resource.resourceDict['fwip'].play(self.owner.pos) #Just testing sound, should be for only stuff on screen or nearby,
+    proj.sound.play(self.owner.pos)
+    #if self.type == "arrow":
+    #  glad.resource.resourceDict['twang'].play(self.owner.pos)
+    #elif self.type == "sparkle":
+    #  glad.resource.resourceDict['faerie1'].play(self.owner.pos)
+    #elif self.type == "lightning":
+    #  glad.resource.resourceDict['bolt1'].play(self.owner.pos)
+    #elif self.type == "meteor":
+    #  glad.resource.resourceDict['blast1'].play(self.owner.pos)
+    #else:
+    #  glad.resource.resourceDict['fwip'].play(self.owner.pos) #Just testing sound, should be for only stuff on screen or nearby,
     
     #proj = BasicProjectile(projectilePos, projectileShape, team, orientation) #basic projectile should be default
     #proj = Fireball(projectilePos,projectileShape,team,orientation)
@@ -169,7 +175,7 @@ class SlimeAttack(BasicRangedAttack):
     glad.world.objectList.append(proj)
     
     #play sound effect
-    glad.resource.resourceDict['fwip'].play(self.owner.pos)
+    proj.sound.play(self.owner.pos)
     
     return True  
   
@@ -234,7 +240,8 @@ class KnifeThrower(BasicRangedAttack):
     glad.world.objectList.append(proj)
     
     #play sound effect
-    glad.resource.resourceDict['fwip'].play(self.owner.pos)
+    proj.sound.play(self.owner.pos)
+    
     return True
 #   TODO: spawn knife here
     
@@ -243,6 +250,7 @@ class Meteor(BasicProjectile):
   def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
     BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='METEOR', **kwargs)
+    self.sound = glad.resource.resourceDict['blast1']
     
 
 class Bone(BasicProjectile):
@@ -345,28 +353,32 @@ class Sparkle(BasicProjectile):
   def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
     BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='SPARKLE', spin=True, **kwargs)
-    
+    self.sound = glad.resource.resourceDict['faerie1']
 
 class Lightning(BasicProjectile):
   def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
     BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='LIGHTNING_TEAM_'+str(owner.team), **kwargs)
+    self.sound = glad.resource.resourceDict['bolt1']
     
 
 class Fireball(BasicProjectile):
   def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
     BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='FIREBALL', **kwargs)
+    self.sound = glad.resource.resourceDict['blast1']
     
     
 class Arrow(BasicProjectile):
   def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
     BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='ARROW', **kwargs)
+    self.sound = glad.resource.resourceDict['twang']
     
 
 class FireArrow(BasicProjectile):
   def __init__(self, pos, shape, owner, moveDir, **kwargs):
     
     BasicProjectile.__init__(self, pos, shape, owner, moveDir, name='FIRE_ARROW', **kwargs)
+    self.sound = glad.resource.resourceDict['twang']
     
