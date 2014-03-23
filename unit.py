@@ -113,7 +113,8 @@ class BasicUnit(AbstractObject):
   def die(self):
     """Kill unit and handle his death"""
     self.alive = False
-    glad.resource.resourceDict['die1'].play(self.pos) #just testing sound out again
+    sound = 'die' + str(random.randint(1,2))
+    glad.resource.resourceDict[sound].play(self.pos) #just testing sound out again
     corpse = Corpse(self.pos, self)
     glad.world.objectList.append(corpse)
   

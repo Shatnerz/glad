@@ -4,6 +4,7 @@ import random #for firing variation
 import animation
 import glad
 import util
+import unit
 
 class BasicProjectile(AbstractObject):
   def __init__(self, pos, shape, owner, moveDir, name='TEST', spin=False, speed=400, slime=False, **kwargs): #can probably get rid of spin and slime and use **kwargs, but not sure how
@@ -68,9 +69,11 @@ class BasicProjectile(AbstractObject):
       self.alive = False
   
   def onCollide(self, enemy):
-    #should only happen with units, but may want to chec if unit
+    #should only happen with units, but may want to check if unit
     #enemy.life -= self.damage
-    self.owner.rangedHit(enemy)
+    if isinstance(enemy, unit.BasicUnit):
+      self.owner.rangedHit(enemy)
+    
     self.alive = False
     #print enemy.life
 
@@ -320,16 +323,18 @@ class MagicKnife(Knife):
   def onCollide(self, enemy):
     #collision should only happen on collision with enemy units
     self.returning = True
-    #Make sure enemy is only hit once
-    #Note - may want to take into account circumstance when knife can hit twice, like if soldier outruns knife and it hits twice
-    applyDamage = True
-    for hit in self.alreadyHit:
-      if enemy==hit:
+    
+    if isinstance(enemy, unit.BasicUnit):
+      #Make sure enemy is only hit once
+      #Note - may want to take into account circumstance when knife can hit twice, like if soldier outruns knife and it hits twice
+      applyDamage = True
+      if enemy in self.alreadyHit:
         applyDamage = False
-    if applyDamage:
-      self.alreadyHit.append(enemy)
-      BasicProjectile.onCollide(self, enemy)
-      self.alive = True
+        
+      if applyDamage:
+        self.alreadyHit.append(enemy)
+        BasicProjectile.onCollide(self, enemy)
+        self.alive = True
  
 class Boulder(BasicProjectile):
   def __init__(self, pos, shape, owner, moveDir, **kwargs):

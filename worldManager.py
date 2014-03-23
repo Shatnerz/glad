@@ -2,15 +2,18 @@ import pygame
 
 import glad
 
+from math import floor, ceil
+
 #from multiMethod import multimethod
 
-import unit, projectile
+import unit, projectile, tile
 
 from util import Vector,Rect,getCollisionInfo,getOverlap
 
 class AbstractWorld(object):
   
   def __init__(self):
+    self.tileGrid = []
     self.objectList = []
     self.controllerList = []
     
@@ -31,19 +34,33 @@ class AbstractWorld(object):
   def createTestGrid(self, (width, height)):
     
     #simple grass grid
-    self.tileGrid = [[1 for x in range(width)] for y in range(height)]
+    #self.tileGrid = [[1 for x in range(width)] for y in range(height)]
+    
+    #create grid
+    self.tileGrid = [[0 for x in range(width+2)] for y in range(height+2)]
+    for x in range(width+2):
+      for y in range(height+2):
+        if x < 1 or x > width or y < 1 or y > height:
+          self.tileGrid[x][y] = tile.Tile((-16+32*x, -16+32*y), 0)
+        elif x>15 or y>15:
+          self.tileGrid[x][y] = tile.Tile((-16+32*x, -16+32*y), 2)
+        else:
+          self.tileGrid[x][y] = tile.Tile((-16+32*x, -16+32*y), 1)
     
     #the basic tile sizes are 32 x 32
-    worldBoundingRect = (0,0,width*32,height*32)
+    worldBoundingRect = (-16, -16,width*32+16,height*32+16)
     
     #Set the world bounding rectangle    
     self.worldBoundingRect = Rect(*worldBoundingRect)
     
   
   def draw(self, screen, offset):
+    for t in sum(self.tileGrid, []):
+      t.draw(screen, offset)
     #draw corpses first then the rest
     for o in self.objectList:
-      if isinstance(o, unit.Corpse):
+      #if isinstance(o, unit.Corpse):
+      if o.collisionType == 'OBJ':
         o.draw(screen, offset)
     for o in self.objectList:
       if not isinstance(o, unit.Corpse):
@@ -64,14 +81,63 @@ class AbstractWorld(object):
     
     #TODO: improve, this is O(n^2) for testing
     
-    for i in range(len(self.objectList)):      
+    for i in range(len(self.objectList)):
+      
+      objI = self.objectList[i]
+      
+      
+      #create bounding box of trajectory and test for collision with appropriate tiles
+      p1 = objI.pos
+      p2 = objI.getPosInTime(time)     
+      shape = self.objectList[i].shape      
+      #Get bounding boxes at the 2 positions
+      box1 = shape.getBoundingBox().translate(p1)
+      box2 = shape.getBoundingBox().translate(p2)     
+      #generate the union between them and store it
+      bbox = Rect.union(box1, box2)
+      
+      tl =  [int(floor(bbox.x1/32)), int(floor(bbox.y1/32))] #top left tile indices
+      br = [int(ceil(bbox.x2/32)), int(ceil(bbox.y2/32))] #bottom right tile indices
+      #print tl[0], br[0]
+      for x in range(tl[0], br[0]+1):
+        for y in range(tl[1], br[1]+1):
+          objJ = self.tileGrid[x][y]
+          #the following is copied from below
+          if not CollisionFilter.canCollide(objI, objJ):
+            continue
+          #Note, the shapes are at the origin, so we have to translate them
+          # to the objects current position
+          s1 = objI.shape.translate(objI.getPos())
+          s1vel = objI.vel
+          
+          s2 = objJ.shape.translate(objJ.getPos())
+          s2vel = objJ.vel
+  
+          #TODO: this will always return none!!!
+          colInfo = getCollisionInfo(s1,s1vel,s2,s2vel)
+                  
+          if colInfo is not None:          
+            
+            #only consider events <= time
+            colTime, objIStops, objJStops = colInfo         
+            
+            if colTime <= time:
+              #print colInfo
+              
+              #if objI not in d:
+              #  d[objI] = set([()])
+              
+              l.append((colTime, objI, objIStops,objJ,objJStops))
+        ####end of copied code
+      
+      #check collision with other objects      
       for j in range(i+1, len(self.objectList)):
         
-        objI = self.objectList[i]
+        #objI = self.objectList[i]
         objJ = self.objectList[j]
         
         
-        #If the objecs can't collide, don't even bother 
+        #If the objects can't collide, don't even bother 
         # comparing them
         if not CollisionFilter.canCollide(objI, objJ):
           continue
@@ -99,7 +165,7 @@ class AbstractWorld(object):
             #  d[objI] = set([()])
             
             l.append((colTime, objI, objIStops,objJ,objJStops))
-  
+
     return l   
   
   def generateNeighborDict(self, time):
@@ -132,10 +198,42 @@ class AbstractWorld(object):
     #TODO: improve, this is O(n^2) for testing
     #TODO: is this only necessary for objects that can stop each other?
     
-    for i in range(len(self.objectList)):      
+    for i in range(len(self.objectList)):
+      iObj = self.objectList[i]
+      iRect = boundDict[i]
+      #Check nearby tiles
+      tl =  [int(floor(iRect.x1/32)), int(floor(iRect.y1/32))] #top left tile indices
+      br = [int(ceil(iRect.x2/32)), int(ceil(iRect.y2/32))] #bottom right tile indices
+      for x in range(tl[0], br[0]+1):
+        for y in range(tl[1], br[1]+1):
+          jObj = self.tileGrid[x][y]
+          
+          #Following Code copied from below
+          
+          #this is only applicable for objects which can create
+          # collision events
+          if not CollisionFilter.canCollide(iObj,jObj):
+            continue
+          #iRect = boundDict[i]
+          jRect = jObj.shape.getBoundingBox().translate(jObj.pos)
+          
+          if Rect.touches(iRect, jRect):
+            if iObj in d:            
+              d[iObj].add(jObj)
+            else:
+              d[iObj] = set([jObj])          
+            
+            if jObj in d:
+              d[jObj].add(iObj)
+            else:
+              d[jObj] = set([iObj])
+        #End of copied code
+          
+          
+      #Check other objects    
       for j in range(i+1, len(self.objectList)):
         
-        iObj = self.objectList[i]
+        #iObj = self.objectList[i]
         jObj = self.objectList[j]
         
         #this is only applicable for objects which can create
@@ -143,7 +241,7 @@ class AbstractWorld(object):
         if not CollisionFilter.canCollide(iObj,jObj):
           continue
         
-        iRect = boundDict[i]
+        #iRect = boundDict[i]
         jRect = boundDict[j]
         
         if Rect.touches(iRect, jRect):
@@ -304,14 +402,14 @@ class AbstractWorld(object):
       
 class CollisionFilter:
   
-  alwaysCollides = {'UNIT': ['UNIT']}
+  alwaysCollides = {'UNIT': ['UNIT','OBJ','WALL','WATER']}
   
   #Collision occur only if objects belong to opposing teams
-  enemyCollides = {'PROJECTILE': ['UNIT']}
+  enemyCollides = {'PROJECTILE': ['UNIT','WALL']}
   
   
   #keep track of objects that stop each other
-  alwaysStop = {'UNIT' : ['UNIT']}
+  alwaysStop = {'UNIT' : ['UNIT','WALL','WATER']}
   
   @staticmethod
   def canCollide(a, b):   
@@ -401,6 +499,12 @@ class PlayerController(object):
       horiz += 1
     if glad.input.isKeyPressed(self.moveLeft):
       horiz -= 1
+      
+    #testing tile class  
+    #if glad.input.isKeyTapped(pygame.K_o):
+    #  a = glad.world.objectList[0]
+    #  glad.world.objectList[0] = tile.Tile((0,0),a.tileNum+1)
+    #  print a.tileNum+1
       
     direction = (horiz, vert)
          
@@ -598,6 +702,9 @@ class TestWorld1(AbstractWorld):
     #sold8 = unit.FireElem(pos=(200, 400), team=0)
     #sold9 = unit.FireElem(pos=(200, 500), team=0)
     
+    #t = tile.Tile((16,16),2)
+    #self.objectList.append(t)
+    
     self.objectList.append(sold1)
     self.objectList.append(sold2)
     self.objectList.append(sold3)
@@ -612,8 +719,8 @@ class TestWorld1(AbstractWorld):
     #set the player to control this unit
     pc1 = PlayerController(sold1)
     self.controllerList.append(pc1)
-    tc1 = TurretController(sold2)
-    self.controllerList.append(tc1)
+    #tc1 = TurretController(sold2)
+    #elf.controllerList.append(tc1)
                 
     #set the camera to follow this unit
     cam1 = glad.renderer.cameraList[0]

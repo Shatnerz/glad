@@ -484,7 +484,7 @@ class Renderer(object):
       
       self.bgSurface = pygame.Surface((w * len(tileGrid[0]),h*len(tileGrid))).convert()
       
-      Renderer.drawTiles(tileGrid,self.bgSurface,(0,0))
+      #Renderer.drawTiles(tileGrid,self.bgSurface,(0,0))
       
     #TODO: increase speed by using area rect to draw only portion of source?
     screen.blit(self.bgSurface, offset)    

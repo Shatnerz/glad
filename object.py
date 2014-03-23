@@ -9,7 +9,7 @@ class AbstractObject(object):
   def __init__(self, pos, shape, team=1, moveSpeed = 50.0, moveDir=None):
     
     #General
-    
+    self.collisionType = None
     #All objects are alive/enabled by default.
     self.alive = True
     
