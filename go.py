@@ -34,7 +34,7 @@ if __name__ == '__main__':
   
   sound = glad.sound = soundManager.SoundManager()
   
-  glad.sound.playMusic()
+  #glad.sound.playMusic()
   
     
      
