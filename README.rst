@@ -15,8 +15,8 @@ the blessing of the original developers.
 
 Install and Run
 ---------------
-```
-pip install -r requirements.txt
+.. code-block:: bash
 
-python go.py
-```
+    pip install -r requirements.txt
+
+    python go.py
